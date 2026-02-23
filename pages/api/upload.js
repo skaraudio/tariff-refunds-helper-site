@@ -55,7 +55,7 @@ export default async function handler(req, res) {
                     : null,
                isEligible: existingEntry.status === 'eligible',
                totalRefundAmount: parseFloat(existingEntry.total_refund_amount),
-               htsCodesFound: JSON.parse(existingEntry.hts_codes_found || '[]'),
+               htsCodesFound: safeJsonParse(existingEntry.hts_codes_found, []),
                lineItems: lineItems.map((item) => ({
                   htsCode: item.hts_code,
                   dutyAmount: parseFloat(item.duty_amount),
@@ -131,6 +131,14 @@ const parseForm = (req) => {
          else resolve({ fields, files });
       });
    });
+};
+
+const safeJsonParse = (str, fallback) => {
+   try {
+      return JSON.parse(str) ?? fallback;
+   } catch {
+      return fallback;
+   }
 };
 
 const updateSiteStats = async (results) => {
