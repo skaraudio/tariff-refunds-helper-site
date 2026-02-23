@@ -60,19 +60,19 @@ function formatCurrency(amount) {
 
 const cards = [
    {
-      key: 'total_entries_processed',
+      key: 'totalEntriesProcessed',
       label: 'Entries Analyzed',
       icon: FileText,
       format: (v) => ({ value: v, prefix: '', suffix: '', decimals: 0 }),
    },
    {
-      key: 'total_refund_amount',
+      key: 'totalRefundAmount',
       label: 'Total Refunds Identified',
       icon: DollarSign,
       format: formatCurrency,
    },
    {
-      key: 'eligible_entries',
+      key: 'eligibleEntries',
       label: 'Eligible Entries',
       icon: CheckCircle,
       format: (v) => ({ value: v, prefix: '', suffix: '', decimals: 0 }),
@@ -81,9 +81,9 @@ const cards = [
 
 export default function StatsCounter() {
    const [stats, setStats] = useState({
-      total_entries_processed: 0,
-      total_refund_amount: 0,
-      eligible_entries: 0,
+      totalEntriesProcessed: 0,
+      totalRefundAmount: 0,
+      eligibleEntries: 0,
    });
 
    const fetchStats = useCallback(async () => {
