@@ -3,6 +3,13 @@
    "version": "1.0.0",
    "private": true,
    "scripts": {
+      "npm-install": "npm install --legacy-peer-deps --ignore-scripts --force",
+      "run1": "npm run ngrok",
+      "run2": "next dev --port 3014 --turbopack",
+      "openClaude1": "claude --dangerously-skip-permissions",
+      "openClaude2": "claude --dangerously-skip-permissions",
+      "openClaude3": "claude --dangerously-skip-permissions",
+      "ngrok": "ngrok http --subdomain=tariff-refunds 3014 > ngrok.log",
       "dev": "next dev",
       "build": "next build",
       "start": "next start",
