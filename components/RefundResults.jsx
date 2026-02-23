@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
-import { CheckCircle, Info, ArrowRight } from 'lucide-react';
+import {motion} from 'framer-motion';
+import {ArrowRight, CheckCircle, Info} from 'lucide-react';
 
 function formatUSD(amount) {
    return new Intl.NumberFormat('en-US', {
@@ -15,6 +15,9 @@ export default function RefundResults({ results }) {
       totalRefundAmount,
       lineItems = [],
       entryNumber,
+       entryDate,
+       countryOfOrigin,
+       totalEnteredValue,
       htsCodesFound = [],
    } = results;
 
@@ -31,7 +34,7 @@ export default function RefundResults({ results }) {
                No IEEPA Tariff Codes Found
             </h3>
             <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-               We did not find HTS codes 9903.01.20, 9903.01.24, or 9903.01.25
+                We did not find any IEEPA tariff codes (9903.01.XX series)
                in this entry summary. This entry does not appear to include
                tariffs affected by the Supreme Court ruling.
             </p>
@@ -81,11 +84,41 @@ export default function RefundResults({ results }) {
             </div>
          </div>
 
+          {/* Entry metadata */}
+          {(entryDate || countryOfOrigin || totalEnteredValue) && (
+              <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                  {entryDate && (
+                      <span>
+                     Entry Date:{' '}
+                          <span className="font-medium text-foreground">
+                        {entryDate}
+                     </span>
+                  </span>
+                  )}
+                  {countryOfOrigin && (
+                      <span>
+                     Country of Origin:{' '}
+                          <span className="font-medium text-foreground">
+                        {countryOfOrigin}
+                     </span>
+                  </span>
+                  )}
+                  {totalEnteredValue != null && (
+                      <span>
+                     Total Entered Value:{' '}
+                          <span className="font-medium tabular-nums text-foreground">
+                        {formatUSD(totalEnteredValue)}
+                     </span>
+                  </span>
+                  )}
+              </div>
+          )}
+
          {/* HTS codes found */}
          {htsCodesFound.length > 0 && (
             <div className="flex flex-wrap gap-2">
                <span className="text-sm text-muted-foreground">
-                  Codes found:
+                  IEEPA codes found:
                </span>
                {htsCodesFound.map((code) => (
                   <span
@@ -110,6 +143,9 @@ export default function RefundResults({ results }) {
                         <th className="px-4 py-3 font-semibold text-foreground">
                            Description
                         </th>
+                         <th className="px-4 py-3 text-right font-semibold text-foreground">
+                             Rate
+                        </th>
                         <th className="px-4 py-3 text-right font-semibold text-foreground">
                            Duty Amount
                         </th>
@@ -127,6 +163,9 @@ export default function RefundResults({ results }) {
                            <td className="px-4 py-3 text-muted-foreground">
                               {item.description}
                            </td>
+                            <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                                {item.rate || '—'}
+                            </td>
                            <td className="px-4 py-3 text-right tabular-nums text-foreground">
                               {formatUSD(item.dutyAmount)}
                            </td>
@@ -136,10 +175,10 @@ export default function RefundResults({ results }) {
                   <tfoot>
                      <tr className="bg-muted/50">
                         <td
-                           colSpan={2}
+                            colSpan={3}
                            className="px-4 py-3 font-semibold text-foreground"
                         >
-                           Total
+                            Total IEEPA Refund
                         </td>
                         <td className="px-4 py-3 text-right font-semibold tabular-nums text-foreground">
                            {formatUSD(totalRefundAmount)}

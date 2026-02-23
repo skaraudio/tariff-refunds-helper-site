@@ -1,14 +1,7 @@
-import { useState, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-   Upload,
-   FileText,
-   CheckCircle,
-   AlertCircle,
-   Loader2,
-   X,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import {useCallback, useRef, useState} from 'react';
+import {AnimatePresence, motion} from 'framer-motion';
+import {AlertCircle, FileText, Loader2, Upload, X,} from 'lucide-react';
+import {cn} from '@/lib/utils';
 import RefundResults from '@/components/RefundResults';
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -91,7 +84,7 @@ export default function FileUpload() {
          setState(STATES.PROCESSING);
 
          const data = await res.json();
-         setResults(data);
+          setResults(data.result);
          setState(STATES.SUCCESS);
       } catch (err) {
          setState(STATES.ERROR);

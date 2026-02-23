@@ -1,7 +1,7 @@
 import formidable from 'formidable';
 import fs from 'fs';
-import { parseEntrySummary } from '@/lib/pdf/parse-entry-summary.mjs';
-import { getDB, getEntrySummariesTable, getTariffLineItemsTable } from '@/lib/mysql/db.mjs';
+import {parseEntrySummary} from '@/lib/pdf/parse-entry-summary.mjs';
+import {getDB, getEntrySummariesTable, getTariffLineItemsTable} from '@/lib/mysql/db.mjs';
 
 export const config = {
    api: {
@@ -48,12 +48,18 @@ export default async function handler(req, res) {
             result: {
                id: existingEntry.id,
                entryNumber: existingEntry.entry_number,
+                entryDate: existingEntry.entry_date || null,
+                countryOfOrigin: existingEntry.country_of_origin || null,
+                totalEnteredValue: existingEntry.total_entered_value
+                    ? parseFloat(existingEntry.total_entered_value)
+                    : null,
                isEligible: existingEntry.status === 'eligible',
                totalRefundAmount: parseFloat(existingEntry.total_refund_amount),
                htsCodesFound: JSON.parse(existingEntry.hts_codes_found || '[]'),
                lineItems: lineItems.map((item) => ({
                   htsCode: item.hts_code,
                   dutyAmount: parseFloat(item.duty_amount),
+                   rate: item.rate || null,
                   description: item.description
                }))
             }
@@ -98,6 +104,9 @@ export default async function handler(req, res) {
          result: {
             id: entryId,
             entryNumber: results.entryNumber,
+             entryDate: results.entryDate,
+             countryOfOrigin: results.countryOfOrigin,
+             totalEnteredValue: results.totalEnteredValue,
             isEligible: results.isEligible,
             totalRefundAmount: results.totalRefundAmount,
             htsCodesFound: results.htsCodesFound,

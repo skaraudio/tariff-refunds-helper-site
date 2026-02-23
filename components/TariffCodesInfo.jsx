@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
-import { AlertTriangle } from 'lucide-react';
+import {motion} from 'framer-motion';
+import {AlertTriangle} from 'lucide-react';
 
 const codes = [
    {
@@ -23,6 +23,13 @@ const codes = [
       description:
          'Blanket 10% baseline tariff on imports from all countries, imposed under IEEPA as part of the "Liberation Day" reciprocal tariff program.',
    },
+   {
+      hts: '9903.01.26–99',
+      name: 'Country-Specific Reciprocal Tariffs',
+      period: 'Apr 9, 2025 onward',
+      description:
+          'Higher country-specific tariff rates (e.g., 125% on China/HK/Macau under 9903.01.63) imposed under the same IEEPA reciprocal tariff authority.',
+   },
 ];
 
 export default function TariffCodesInfo() {
@@ -40,13 +47,13 @@ export default function TariffCodesInfo() {
                   IEEPA Tariff Codes Struck Down
                </h2>
                <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-                  The Supreme Court ruled these three HTS codes — imposed under
-                  the International Emergency Economic Powers Act — were an
-                  unconstitutional exercise of executive power.
+                  The Supreme Court ruled all tariffs in the 9903.01.XX series
+                  — imposed under the International Emergency Economic Powers
+                  Act — were an unconstitutional exercise of executive power.
                </p>
             </motion.div>
 
-            <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                {codes.map((code, i) => (
                   <motion.div
                      key={code.hts}
