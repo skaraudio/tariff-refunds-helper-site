@@ -1,0 +1,27 @@
+{
+    "permissions": {
+        "allow": [
+            "Edit",
+            "Write",
+            "Bash(ls:*)",
+            "Bash(grep:*)",
+            "Bash(node:*)",
+            "Bash(npm:*)",
+            "Bash(npm run:*)",
+            "Bash(mkdir:*)",
+            "Bash(rm:*)",
+            "Bash(echo:*)",
+            "Bash(cat:.env*)",
+            "Bash(touch:*)"
+        ],
+        "deny": [
+            "Bash(rm:.env*)",
+            "Bash(rm:-rf)",
+            "Bash(rm:--force)"
+        ]
+    },
+    "env": {
+        "CLAUDE_CODE_AUTO_APPROVE": "true",
+        "CLAUDE_CODE_SKIP_CONFIRMATIONS": "true"
+    }
+}
