@@ -147,6 +147,58 @@ Rules in `.claude/rules/` auto-load when working on matching file paths.
 
 - **shadcn**: Component registry (`mcp__shadcn__*` tools)
 - **Context7**: Live library docs - auto-use for external library questions
+- **Next.js Dev Tools**: Runtime introspection & official docs (`mcp__next-devtools__*` tools) — see mandatory section below
+
+---
+
+## MANDATORY: Retrieval-Led Reasoning for All Next.js Work
+
+**IMPORTANT: For ANY Next.js-related task, prefer retrieval-led reasoning over pre-training-led reasoning. Do NOT rely on
+memorized Next.js knowledge — always query live sources first. No exceptions.**
+
+Next.js 16 exposes a built-in MCP endpoint (`/_next/mcp`) on the dev server, giving Claude direct access to runtime
+state, route information, compilation errors, and build diagnostics. Combined with the `nextjs_docs` tool for official
+documentation, this means there is **zero reason to guess** about Next.js APIs, behavior, or current app state.
+
+### The Retrieval Hierarchy
+
+For any Next.js question or task, follow this order — stop at the first source that answers the question:
+
+1. **Runtime introspection** (`mcp__next-devtools__nextjs_index` + `mcp__next-devtools__nextjs_call`) — Query the
+   running dev server for routes, errors, build status, and diagnostics. This is the ground truth for "what is the app
+   doing right now?"
+2. **Official documentation** (`mcp__next-devtools__nextjs_docs`) — Fetch the exact doc page from Next.js official docs.
+   Always read the `nextjs-docs://llms-index` MCP resource first to get the correct path, then fetch the specific page.
+3. **Source code** (Read/Grep/Glob) — Read the project's actual Next.js files to understand implementation details.
+4. **Pre-trained knowledge** — Only as a last resort, and flag it: *"Note: this is based on general knowledge, not
+   verified against current docs."*
+
+### When This Applies
+
+- Implementing or modifying Next.js pages, routes, layouts, middleware, or API routes
+- Debugging build errors, hydration issues, or runtime failures
+- Answering questions about Next.js APIs, configuration, or behavior
+- Upgrading Next.js or migrating to new patterns (e.g., Cache Components)
+- Any task where you would otherwise rely on remembered Next.js syntax or semantics
+
+### Tools Reference
+
+| Tool                                        | Purpose                                                        | When to Use                                               |
+|---------------------------------------------|----------------------------------------------------------------|-----------------------------------------------------------|
+| `mcp__next-devtools__init`                  | Initialize session, reset Next.js knowledge baseline           | Start of any Next.js-focused session                      |
+| `mcp__next-devtools__nextjs_index`          | Discover running dev servers and available runtime MCP tools    | Before ANY change to the running app                      |
+| `mcp__next-devtools__nextjs_call`           | Call runtime tools (errors, routes, build status, cache mgmt)  | Diagnosing issues, verifying state after changes          |
+| `mcp__next-devtools__nextjs_docs`           | Fetch official Next.js documentation by path                   | Any API/config/behavior question — replaces guessing      |
+| `mcp__next-devtools__upgrade_nextjs_16`     | Guide through Next.js 16 upgrade with official codemod         | Version upgrades                                          |
+| `mcp__next-devtools__enable_cache_components`| Migrate to Cache Components mode                              | Cache Components setup                                    |
+| `mcp__next-devtools__browser_eval`          | Browser automation (Playwright) for page verification          | Testing rendered output, hydration, client-side behavior  |
+
+### Anti-Patterns (Do NOT Do These)
+
+- **Do NOT** write Next.js code from memory without checking docs first — APIs change between versions
+- **Do NOT** diagnose Next.js errors by guessing — query the dev server's MCP endpoint for actual error details
+- **Do NOT** assume route structure — use `nextjs_index` to discover what routes actually exist
+- **Do NOT** answer "how does X work in Next.js?" from pre-training — fetch the doc page and cite it
 
 ---
 
