@@ -1,23 +1,19 @@
 {
     "permissions": {
+        "defaultMode": "bypassPermissions",
         "allow": [
+            "Bash",
             "Edit",
             "Write",
-            "Bash(ls:*)",
-            "Bash(grep:*)",
-            "Bash(node:*)",
-            "Bash(npm:*)",
-            "Bash(npm run:*)",
-            "Bash(mkdir:*)",
-            "Bash(rm:*)",
-            "Bash(echo:*)",
-            "Bash(cat:.env*)",
-            "Bash(touch:*)"
+            "Read",
+            "WebFetch",
+            "WebSearch",
+            "mcp__*"
         ],
         "deny": [
-            "Bash(rm:.env*)",
-            "Bash(rm:-rf)",
-            "Bash(rm:--force)"
+            "Bash(rm .env*)",
+            "Bash(rm -rf)",
+            "Bash(rm --force)"
         ]
     },
     "env": {
