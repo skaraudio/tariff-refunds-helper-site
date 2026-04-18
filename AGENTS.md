@@ -67,6 +67,63 @@ Rules in `.claude/rules/` auto-load when working on matching file paths.
 
 ---
 
+## MANDATORY: Test File Conventions (Blocking — Read Rules BEFORE Writing Any Test)
+
+**BEFORE creating OR editing ANY file under `test/` or `.claude/temp/workspace/`, you MUST read this
+section in full. These conventions are non-negotiable.**
+
+Path-triggered rules only auto-load reliably when Claude EDITS a file whose path already matches a rule's
+`paths:` frontmatter. When Claude CREATES a NEW test file, the trigger often fires AFTER the first draft
+has already been written — by which point the conventions have already been violated. Apply these
+defaults proactively BEFORE writing.
+
+### The Five Non-Negotiable Rules
+
+1. **Arrow function syntax only** — `const fnName = async () => { ... }`. NEVER `async function fnName() { }`.
+   This applies to the primary helper AND every sub-helper. No exceptions, even for one-off helpers.
+2. **`runTest()` is a thin wrapper** — it holds ONLY a `config` object and ONE call to the primary helper.
+   All logic lives in helpers BELOW. The `runTest()` block must be trivially scannable.
+3. **Minimize comments** — no decorative dividers, no redundant labels, no commentary that restates the next
+   line of code. Only comments for non-obvious constraints, workarounds, invariants, or gotchas.
+4. **Concise but present logging** — one line per phase, not silence and not noise. Color helpers if
+   available (none currently in this repo); otherwise plain `console.log` is fine.
+5. **Progress indicators for any loop / batch > 3 items** — `[N/total]` per item, `Page N/total` per batch.
+   For concurrent workers, log at batch boundaries AND at completion (e.g. `Enriched 142/142 in 8s`).
+
+### Anti-Pattern Callout
+
+WRONG:
+
+```js
+runTest(async () => {
+    const records = await fetch('...').then(r => r.json());
+    for (const r of records) { console.log('Processing', r.id); await doWork(r); }
+});
+async function doWork(r) { /* ... */ }
+```
+
+RIGHT:
+
+```js
+runTest(async () => {
+    const config = { hts: '8501.34.20', entryDate: '2025-11-15' };
+    await runRefundCheck(config);
+});
+
+const runRefundCheck = async (config) => {
+    console.log(`=== Refund Check: ${config.hts} ===`);
+    const entries = await fetchAllEntries(config);
+    console.log(`Done — ${entries.length} entries`);
+};
+
+const fetchAllEntries = async (config) => { /* ... */ };
+```
+
+### Enforcement
+If about to write `async function X() {}` inside `test/` or `.claude/`, stop — use `const X = async () => {}` instead.
+
+---
+
 ## Core Standards
 
 ### Quality (Blocking)
@@ -211,5 +268,5 @@ For any Next.js question or task, follow this order — stop at the first source
 
 ---
 
-*Version: 1.0 - Tariff Refunds Helper Site*
+*Version: 1.1 - Added MANDATORY Test File Conventions section*
 *Rules: `.claude/rules/` | Agents: `.claude/agents/` | Skills: `.claude/skills/`*
