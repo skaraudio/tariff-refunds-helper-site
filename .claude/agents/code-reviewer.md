@@ -100,3 +100,7 @@ Focus on real issues that could cause bugs, security problems, or maintenance he
 ---
 
 *Version: 1.0*
+
+---
+
+*Version: 3.0*

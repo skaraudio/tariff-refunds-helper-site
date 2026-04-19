@@ -1,126 +1,131 @@
-# Tariff Refunds Helper Site Development System
+# Tariff Refunds Helper Site
 
-Public-facing tool for importers to check IEEPA tariff refund eligibility following the Feb 20, 2026 Supreme Court
-ruling.
+Public-facing Next.js tool for importers to check IEEPA tariff refund eligibility following the Feb 20, 2026 Supreme
+Court ruling. Stack: Next.js 16, React 19, MySQL (via `mysql2`), Tailwind 4, shadcn/ui.
 
-## MANDATORY: Model Selection — Opus 4.6 Only
+## MANDATORY: Model Selection — Opus 4.7 with Medium Thinking
 
-**ALL agents, subagents, skills, teams, exploration tasks, and spawned Task tool invocations MUST use `model: "opus"` (
-Opus 4.6). No exceptions.**
+**ALL agents, subagents, skills, teams, exploration tasks, and spawned Task tool invocations MUST use `model: "opus"`
+(Opus 4.7) with medium thinking enabled. No exceptions.**
 
 - When using the Task tool, ALWAYS pass `model: "opus"` regardless of subagent_type (Explore, Plan, Bash,
   general-purpose, etc.)
-- When entering plan mode or spawning any agent, use Opus 4.6
-- NEVER use Sonnet or Haiku for any subtask, exploration, or delegation — always Opus 4.6
-- This applies to every single spawned agent without exception
+- Subagents should operate with **medium thinking** (extended thinking budget) so they can reason through multi-step
+  investigations before acting.
+- Claude Code resolves `"opus"` to the current Opus 4.7 model automatically — do not try to pin a minor version; the
+  Agent tool's `model` argument only accepts `"opus" | "sonnet" | "haiku"`.
+- When reporting on spawned-agent runs, say "Opus" — do not assert a specific 4.x version, since the runtime may route
+  independently.
+- NEVER use Sonnet or Haiku for any subtask, exploration, or delegation — always Opus 4.7.
+
+---
 
 ## Quick Reference
 
-| Resource   | Location         |
-|------------|------------------|
-| Dev server | `localhost:3000` |
-| Rules      | `.claude/rules/` |
-| Agents     | `.claude/agents/` |
-| Skills     | `.claude/skills/` |
-| Scripts    | `.claude/scripts/` |
+| Resource             | Location            |
+|----------------------|---------------------|
+| Dev server           | `localhost:3014`    |
+| Next.js pages        | `pages/`            |
+| API routes           | `pages/api/`        |
+| React components     | `components/`       |
+| Core logic / db      | `lib/`              |
+| Styles               | `styles/`           |
+| Path-triggered rules | `.claude/rules/`    |
+| Agent definitions    | `.claude/agents/`   |
+| Skills               | `.claude/skills/`   |
+| Scratch / throwaway  | `.claude/temp/`     |
 
 ---
 
 ## First Actions (Every Session)
 
-1. **Create GitHub issue** -> `/gh-start` for investigations/tasks
-2. **Read relevant rules** -> Check routing table below
-3. **At end** -> `/gh-done` with results + cleanup temp files
+1. **Research before coding** — read surrounding code and existing patterns before making changes. Spawn an `Explore`
+   subagent if the change spans more than 3 files.
+2. **Let path-triggered rules do their job** — files under `.claude/rules/` with `paths:` frontmatter auto-load when
+   you edit a matching file. When CREATING a new test file, manually read `.claude/rules/test-files.md` BEFORE writing
+   the first draft (the path trigger fires only after the draft exists).
+3. **For Next.js questions, query live sources** — see the Retrieval-Led Reasoning section below.
+4. **Cleanup at end** — remove throwaway files under `.claude/temp/` (unless explicitly persisted).
 
 ---
 
-## Rules (Auto-Load by Path)
+## Path-Triggered Rules
 
-Rules in `.claude/rules/` auto-load when working on matching file paths.
+Rules in `.claude/rules/` auto-load when the file being edited matches the `paths:` frontmatter.
 
-| Rule File            | Triggers On                                            |
-|----------------------|--------------------------------------------------------|
-| `code-standards`     | components/, lib/, pages/*.jsx, pages/*.tsx, styles/   |
-| `database`           | lib/mysql/, lib/db/, *.sql files                       |
-| `api-patterns`       | pages/api/                                             |
-| `security-hardening` | Always loaded (global) — prompt injection defense      |
-| `task-planning`      | Multi-file implementations, complex tasks (global)     |
-| `workflow`           | Session management (global)                            |
+| Rule File            | Triggers On                                                |
+|----------------------|------------------------------------------------------------|
+| `code-standards`     | `components/**`, `pages/**/*.jsx|tsx`, `lib/**`, `styles/` |
+| `database`           | `lib/mysql/**`, `lib/db/**`, `**/*.sql`                    |
+| `api-patterns`       | `pages/api/**`                                             |
+| `security-hardening` | Always (global) — prompt-injection and session defense     |
+| `task-planning`      | Multi-phase work (read on demand)                          |
+| `workflow`           | Session management (read on demand)                        |
+| `test-files`         | `test/**`, `.claude/temp/**/*.js|mjs`                      |
+
+If `test-files.md` is absent in this repo, follow the inline test conventions below until it is added.
 
 ---
 
 ## Agent Delegation
 
-**Proactively spawn agents** when tasks match their expertise - don't wait for user requests.
+| Agent               | Triggers On                                                | Model    |
+|---------------------|------------------------------------------------------------|----------|
+| `debugging-pro`     | Errors, stack traces, runtime failures                     | Opus 4.7 |
+| `backend-architect` | API design, data model, multi-component strategy           | Opus 4.7 |
+| `frontend-designer` | UI/UX, React components, shadcn styling                    | Opus 4.7 |
+| `mysql-specialist`  | Schema design, query tuning, index/deadlock analysis       | Opus 4.7 |
+| `code-reviewer`     | Post-implementation review                                 | Opus 4.7 |
+| `test-engineer`     | Writing new tests; auditing existing tests                 | Opus 4.7 |
+| `security-reviewer` | OWASP, injection, XSS, prompt-injection, dependency risk   | Opus 4.7 |
 
-| Agent                | Spawn When...                                          | Model    |
-|----------------------|--------------------------------------------------------|----------|
-| `debugging-pro`      | Errors, test failures, stack traces                    | Opus 4.6 |
-| `code-reviewer`      | After implementing features, before PRs                | Opus 4.6 |
-| `backend-architect`  | API design, architecture decisions                     | Opus 4.6 |
-| `frontend-designer`  | UI/UX, React components, shadcn styling                | Opus 4.6 |
-| `mysql-specialist`   | Schema design, complex queries, deadlocks              | Opus 4.6 |
-| `security-reviewer`  | OWASP, SQL injection, XSS review                       | Opus 4.6 |
-| `test-engineer`      | Test creation, test debugging                          | Opus 4.6 |
+**Manual invocation:** `"Use the {agent-name} agent to ..."` or pass `subagent_type: "{agent-name}"` to the Task tool.
 
-**Manual invocation**: "Use the {agent-name} agent to..."
+### Subagent Rule Propagation (Important)
+
+**Subagents do NOT inherit path-triggered rules from `.claude/rules/`.** They start with a fresh context. If a
+subagent is about to author a test file, edit a DB module, or touch an API route, inline the relevant rule excerpts
+into the subagent's prompt. Example:
+
+> TEST-FILE RULES (non-negotiable): Use `const X = async () => {}` arrow syntax only — never `async function X() {}`.
+> `runTest()` is a thin wrapper holding ONLY a `config` object and ONE call to the primary helper. Use colored
+> `chalk` logging when available. Add `[N/total]` progress indicators for any loop > 3 items. Minimize comments.
+
+Subagents also do NOT inherit the Opus-4.7 mandate from this file — **always pass `model: "opus"` explicitly when
+spawning them.**
 
 ---
 
-## MANDATORY: Test File Conventions (Blocking — Read Rules BEFORE Writing Any Test)
+## Retrieval-Led Reasoning
 
-**BEFORE creating OR editing ANY file under `test/` or `.claude/temp/workspace/`, you MUST read this
-section in full. These conventions are non-negotiable.**
+For volatile knowledge that changes out-of-band — Next.js APIs, React 19 behavior, shadcn/ui conventions, HTS code
+lookups, IEEPA rulings, carrier APIs — **prefer reading the code or current documentation over recalling from memory.**
 
-Path-triggered rules only auto-load reliably when Claude EDITS a file whose path already matches a rule's
-`paths:` frontmatter. When Claude CREATES a NEW test file, the trigger often fires AFTER the first draft
-has already been written — by which point the conventions have already been violated. Apply these
-defaults proactively BEFORE writing.
+### Next.js Specifically (Mandatory)
 
-### The Five Non-Negotiable Rules
+Next.js 16 exposes a built-in MCP endpoint (`/_next/mcp`) on the dev server. For ANY Next.js question or task, follow
+this retrieval hierarchy — stop at the first source that answers:
 
-1. **Arrow function syntax only** — `const fnName = async () => { ... }`. NEVER `async function fnName() { }`.
-   This applies to the primary helper AND every sub-helper. No exceptions, even for one-off helpers.
-2. **`runTest()` is a thin wrapper** — it holds ONLY a `config` object and ONE call to the primary helper.
-   All logic lives in helpers BELOW. The `runTest()` block must be trivially scannable.
-3. **Minimize comments** — no decorative dividers, no redundant labels, no commentary that restates the next
-   line of code. Only comments for non-obvious constraints, workarounds, invariants, or gotchas.
-4. **Concise but present logging** — one line per phase, not silence and not noise. Color helpers if
-   available (none currently in this repo); otherwise plain `console.log` is fine.
-5. **Progress indicators for any loop / batch > 3 items** — `[N/total]` per item, `Page N/total` per batch.
-   For concurrent workers, log at batch boundaries AND at completion (e.g. `Enriched 142/142 in 8s`).
+1. **Runtime introspection** (`mcp__next-devtools__nextjs_index` + `mcp__next-devtools__nextjs_call`) — the running
+   dev server is ground truth for routes, errors, and build state.
+2. **Official documentation** (`mcp__next-devtools__nextjs_docs`) — read the `nextjs-docs://llms-index` resource
+   first, then fetch the exact page.
+3. **Source code** (Read / Grep / Glob) — the project's own files.
+4. **Pre-trained knowledge** — last resort. Flag it: *"Note: this is based on general knowledge, not verified against
+   current docs."*
 
-### Anti-Pattern Callout
+| Tool                                          | Purpose                                                 |
+|-----------------------------------------------|---------------------------------------------------------|
+| `mcp__next-devtools__init`                    | Initialize session, reset baseline                      |
+| `mcp__next-devtools__nextjs_index`            | Discover running dev servers + runtime tools            |
+| `mcp__next-devtools__nextjs_call`             | Call runtime tools (errors, routes, build status)       |
+| `mcp__next-devtools__nextjs_docs`             | Fetch official Next.js documentation by path            |
+| `mcp__next-devtools__upgrade_nextjs_16`       | Guided Next.js 16 upgrade                               |
+| `mcp__next-devtools__enable_cache_components` | Migrate to Cache Components                             |
+| `mcp__next-devtools__browser_eval`            | Playwright automation to verify rendered output         |
 
-WRONG:
-
-```js
-runTest(async () => {
-    const records = await fetch('...').then(r => r.json());
-    for (const r of records) { console.log('Processing', r.id); await doWork(r); }
-});
-async function doWork(r) { /* ... */ }
-```
-
-RIGHT:
-
-```js
-runTest(async () => {
-    const config = { hts: '8501.34.20', entryDate: '2025-11-15' };
-    await runRefundCheck(config);
-});
-
-const runRefundCheck = async (config) => {
-    console.log(`=== Refund Check: ${config.hts} ===`);
-    const entries = await fetchAllEntries(config);
-    console.log(`Done — ${entries.length} entries`);
-};
-
-const fetchAllEntries = async (config) => { /* ... */ };
-```
-
-### Enforcement
-If about to write `async function X() {}` inside `test/` or `.claude/`, stop — use `const X = async () => {}` instead.
+**Anti-patterns:** writing Next.js code from memory, guessing at error causes, assuming route structure, answering
+"how does X work in Next.js?" without fetching the doc page.
 
 ---
 
@@ -128,35 +133,105 @@ If about to write `async function X() {}` inside `test/` or `.claude/`, stop —
 
 ### Quality (Blocking)
 
-- Zero errors, lint issues, or formatting problems
-- **Never run** `npm run build` - use targeted tests
+- Zero errors, lint issues, or formatting problems in changed files
+- **Never run** `npm run build` during iteration — use targeted dev-server or test runs
+- Tests must pass before declaring work complete
+
+### Workflow
+
+1. **Research** — understand existing patterns before editing.
+2. **Plan** — for multi-file work, outline the change; spawn `backend-architect` or `frontend-designer` if the design
+   is non-obvious.
+3. **Implement** — edit with intent; don't refactor unrelated code.
+4. **Validate** — run the relevant check; if UI, verify in a browser; if it's a DB change, run a throwaway script
+   under `.claude/temp/workspace/`.
 
 ### Code
 
-- Use `runTest` wrapper (auto-loads `.env`)
-- Delete old code when replacing
-- Use early returns, remove unused imports
-- Run SQL via JS files, not bash
-- Use parameterized queries for all database operations (prevent SQL injection)
+- ES modules (`import` / `export`)
+- `async/await` for all async operations
+- `const` arrow functions (except Next.js `pages/` files, which require `export default function`)
+- Delete old code when replacing it — no `_deprecated` comment-outs
+- Use early returns; remove unused imports
+- Destructuring, optional chaining (`?.`), nullish coalescing (`??`)
 
 ### React Hooks (Critical)
 
 ```javascript
 // CORRECT: }, [deps]);
-// WRONG:   };, [deps]);  // NEVER semicolon before comma
+// WRONG:   };, [deps]);   // never semicolon before comma
 ```
 
-### Test Files
+### Database pattern
 
-- **Self-verification tests** (Claude verifying its own work) -> `.claude/temp/workspace/self-tests/`
-- **User-requested tests** (user asks for tests) -> Project test directory (`/test`)
+```javascript
+import { getDB } from '../../lib/mysql/db.mjs';
 
-### Temp Files & Task Tracking
+const db = await getDB('tariffs');
+const rows = await db.query('SELECT * FROM entries WHERE hts = ?', [hts]);
+```
 
-- **Claude workspace** -> `.claude/temp/workspace/` (DELETE after task)
-- **Migration scripts** -> `.claude/temp/workspace/migrations/` (NEVER in `scripts/` or `.claude/scripts/`)
-- **User-facing docs** -> `.claude/temp/.md/` (KEEP forever)
-- **Track complex tasks** with task lists in `.claude/temp/.md/execution/`
+Never interpolate user input into SQL strings — always parameterize.
+
+### Error handling
+
+```javascript
+try {
+    const result = await fetchEligibility(htsCode);
+    return { success: true, eligible: result.eligible };
+} catch (error) {
+    console.error('Eligibility check failed:', error.message);
+    throw error;
+}
+```
+
+---
+
+## Comment Policy (Blocking)
+
+**Default: no comments.** Only add a comment when the WHY is non-obvious: a hidden constraint, a subtle invariant, a
+workaround for a specific bug, a non-obvious regulatory / tariff quirk, or behavior that would surprise a reader.
+
+NEVER write:
+
+- Decorative dividers (`// ─── Section ───`, `// ========== Step 1 ==========`)
+- Redundant labels (`// Main function`, `// Helpers below`)
+- Commentary that restates the next line of code
+- References to the current task, PR, or issue number (belongs in commit messages, not code)
+
+Comments that DO belong go to the RIGHT of the line, not above it:
+
+```js
+// CORRECT
+const config = {
+    maxRetries: 3,          // retry budget for transient ACE API hiccups
+    cacheTtlMs: 900_000,    // 15 min — HTS rulings rarely churn intraday
+};
+```
+
+If removing a comment wouldn't confuse a future reader, don't write it.
+
+---
+
+## MANDATORY: Test File Conventions (Blocking — Read `.claude/rules/test-files.md` BEFORE Writing Any Test)
+
+**BEFORE creating OR editing ANY file under `test/` or `.claude/temp/workspace/`, you MUST follow the conventions in
+`.claude/rules/test-files.md`.** They are non-negotiable.
+
+Path-triggered rules only auto-load reliably when Claude EDITS a file whose path already matches. When Claude CREATES
+a NEW test file, the trigger often fires AFTER the first draft has already been written. Load the rules first.
+
+**The five non-negotiable rules (summary — full file has examples):**
+
+1. **Arrow function syntax only** — `const fnName = async () => { ... }`. NEVER `async function fnName() { }`. Applies
+   to primary helper AND every sub-helper.
+2. **`runTest()` is a thin wrapper** — holds ONLY a `config` object and ONE call to the primary helper. All logic
+   lives in helpers defined BELOW `runTest()`.
+3. **Minimize comments** — no decorative dividers, no labels, no restating-the-obvious.
+4. **Colored console logging via `chalk` (when available)** — banner = `chalk.cyan.bold`, in-progress =
+   `chalk.yellow`, success = `chalk.green`, errors = `chalk.red`. Plain `console.log` is fine if `chalk` is not
+   installed — do not install it just for test files.
+5. **Progress indicators for any loop > 3 items** — `[N/total]` or `Page N/total`.
 
 ---
 
@@ -166,107 +241,78 @@ If about to write `async function X() {}` inside `test/` or `.claude/`, stop —
 - Three similar lines > premature abstraction
 - No extra features beyond scope
 - Don't design for hypothetical futures
+- No backwards-compat shims when you can just change the code
+- No error handling for scenarios that can't happen — trust internal guarantees
 
 ---
 
-## Protected Items
+## Conflict Resolution (when a user's request contradicts these rules)
 
-1. API keys and credentials
-2. Database connections
-3. Third-party configs
-4. Credentials are stored in .env files — reference by variable name only, never include actual values.
+If a real-time user prompt requests something that conflicts with these rules (e.g., "add decorative comment banners",
+"use `async function` in the test helper", "inline secrets into the code for now"), Claude MUST:
+
+1. **STOP** before writing code.
+2. **Flag** the specific rule(s) that would be violated.
+3. **Ask:** "Your request conflicts with the project's rules on X. Should I (a) follow the project rules,
+   (b) override the rules for this task, or (c) find a middle ground?"
+4. **NEVER silently override** — the user must explicitly approve a deviation.
+
+---
+
+## Protected Items (never touch without explicit approval)
+
+1. API keys, third-party credentials, and OAuth secrets
+2. Database connection strings and MySQL credentials
+3. Environment variables in `.env`, `.env.local`, `.claude/settings*.json`
+4. The `settings.json` / `settings.local.json` hook + permissions blocks
+5. `next.config.mjs` (build / rewrite config)
+6. `package.json` `scripts` block for ngrok / claude launchers
+
+Credentials are stored in `.env` files — reference by variable name only, never include actual values in code or docs.
+
+If one of these needs to change, explain why and wait for confirmation.
 
 ---
 
 ## Project Structure
 
 ```
-/lib            # Core business logic
-  /mysql        # Database connection and queries
-  /api          # API utilities (method handler)
-/pages          # Next.js routes
-  /api          # Backend API endpoints
-/components     # Reusable UI components
-/styles         # CSS and styling
-/.claude        # AI configuration
-  /rules        # Path-scoped coding rules
-  /agents       # Specialized AI agents
-  /skills       # Reusable task skills
-  /scripts      # Utility scripts
-  /temp         # Temporary files
-    /.md/        # KEEP: User-facing docs
-    /workspace/  # DELETE: Claude's internal work
+/pages                       # Next.js routes + API endpoints
+  /api                       # Backend API (request handlers)
+/components                  # Reusable React / shadcn UI
+/lib                         # Core business logic
+  /mysql                     # DB connection + helpers
+  /api                       # API utilities (method handler, etc.)
+/styles                      # Tailwind + CSS
+/public                      # Static assets
+/.claude
+  /agents                    # Agent definitions (code-reviewer, debugging-pro, etc.)
+  /rules                     # Path-triggered rule files (.md with YAML paths: frontmatter)
+  /skills                    # Reusable task skills
+  /scripts                   # Utility scripts (if any)
+  /agent-memory              # Per-agent persistent notes
+  /temp                      # Scratch — cleaned at end of every session
 ```
 
 ---
 
 ## MCP Servers
 
-- **shadcn**: Component registry (`mcp__shadcn__*` tools)
-- **Context7**: Live library docs - auto-use for external library questions
-- **Next.js Dev Tools**: Runtime introspection & official docs (`mcp__next-devtools__*` tools) — see mandatory section below
-
----
-
-## MANDATORY: Retrieval-Led Reasoning for All Next.js Work
-
-**IMPORTANT: For ANY Next.js-related task, prefer retrieval-led reasoning over pre-training-led reasoning. Do NOT rely on
-memorized Next.js knowledge — always query live sources first. No exceptions.**
-
-Next.js 16 exposes a built-in MCP endpoint (`/_next/mcp`) on the dev server, giving Claude direct access to runtime
-state, route information, compilation errors, and build diagnostics. Combined with the `nextjs_docs` tool for official
-documentation, this means there is **zero reason to guess** about Next.js APIs, behavior, or current app state.
-
-### The Retrieval Hierarchy
-
-For any Next.js question or task, follow this order — stop at the first source that answers the question:
-
-1. **Runtime introspection** (`mcp__next-devtools__nextjs_index` + `mcp__next-devtools__nextjs_call`) — Query the
-   running dev server for routes, errors, build status, and diagnostics. This is the ground truth for "what is the app
-   doing right now?"
-2. **Official documentation** (`mcp__next-devtools__nextjs_docs`) — Fetch the exact doc page from Next.js official docs.
-   Always read the `nextjs-docs://llms-index` MCP resource first to get the correct path, then fetch the specific page.
-3. **Source code** (Read/Grep/Glob) — Read the project's actual Next.js files to understand implementation details.
-4. **Pre-trained knowledge** — Only as a last resort, and flag it: *"Note: this is based on general knowledge, not
-   verified against current docs."*
-
-### When This Applies
-
-- Implementing or modifying Next.js pages, routes, layouts, middleware, or API routes
-- Debugging build errors, hydration issues, or runtime failures
-- Answering questions about Next.js APIs, configuration, or behavior
-- Upgrading Next.js or migrating to new patterns (e.g., Cache Components)
-- Any task where you would otherwise rely on remembered Next.js syntax or semantics
-
-### Tools Reference
-
-| Tool                                        | Purpose                                                        | When to Use                                               |
-|---------------------------------------------|----------------------------------------------------------------|-----------------------------------------------------------|
-| `mcp__next-devtools__init`                  | Initialize session, reset Next.js knowledge baseline           | Start of any Next.js-focused session                      |
-| `mcp__next-devtools__nextjs_index`          | Discover running dev servers and available runtime MCP tools    | Before ANY change to the running app                      |
-| `mcp__next-devtools__nextjs_call`           | Call runtime tools (errors, routes, build status, cache mgmt)  | Diagnosing issues, verifying state after changes          |
-| `mcp__next-devtools__nextjs_docs`           | Fetch official Next.js documentation by path                   | Any API/config/behavior question — replaces guessing      |
-| `mcp__next-devtools__upgrade_nextjs_16`     | Guide through Next.js 16 upgrade with official codemod         | Version upgrades                                          |
-| `mcp__next-devtools__enable_cache_components`| Migrate to Cache Components mode                              | Cache Components setup                                    |
-| `mcp__next-devtools__browser_eval`          | Browser automation (Playwright) for page verification          | Testing rendered output, hydration, client-side behavior  |
-
-### Anti-Patterns (Do NOT Do These)
-
-- **Do NOT** write Next.js code from memory without checking docs first — APIs change between versions
-- **Do NOT** diagnose Next.js errors by guessing — query the dev server's MCP endpoint for actual error details
-- **Do NOT** assume route structure — use `nextjs_index` to discover what routes actually exist
-- **Do NOT** answer "how does X work in Next.js?" from pre-training — fetch the doc page and cite it
+- **shadcn** — component registry (`mcp__shadcn__*`)
+- **Context7** — live library docs; auto-use for external library questions
+- **Next.js DevTools** — runtime introspection and official docs (`mcp__next-devtools__*`), see Retrieval-Led
+  Reasoning above
 
 ---
 
 ## Problem Solving
 
-1. **Stop** - Don't spiral into complexity
-2. **Delegate** - Spawn agents for investigation
-3. **Simplify** - Simple solution is usually correct
-4. **Ask** - "I see [A] vs [B]. Which do you prefer?"
+1. **Stop** — don't spiral into complexity
+2. **Delegate** — spawn `Explore` / `debugging-pro` / `backend-architect` / `frontend-designer` as appropriate
+3. **Simplify** — the simple solution is usually correct
+4. **Ask** — "I see [A] vs [B]. Which do you prefer?" beats guessing
 
 ---
 
-*Version: 1.1 - Added MANDATORY Test File Conventions section*
-*Rules: `.claude/rules/` | Agents: `.claude/agents/` | Skills: `.claude/skills/`*
+*Version: 3.0 — Opus 4.7 Unified Architecture*
+*Rules auto-load from `.claude/rules/` via `paths:` frontmatter | Agents: `.claude/agents/` | Skills: `.claude/skills/`*

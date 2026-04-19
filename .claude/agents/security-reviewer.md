@@ -137,3 +137,7 @@ const query = `SELECT * FROM tariff_line_items WHERE entry_id = '${value}'`; // 
 ---
 
 *Version: 1.0*
+
+---
+
+*Version: 3.0*

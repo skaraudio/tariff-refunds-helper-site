@@ -86,3 +86,7 @@ When proposing architecture changes:
 ---
 
 *Version: 1.0*
+
+---
+
+*Version: 3.0*

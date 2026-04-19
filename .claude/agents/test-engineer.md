@@ -142,3 +142,7 @@ const testDatabaseQueries = async () => {
 ---
 
 *Version: 1.0*
+
+---
+
+*Version: 3.0*

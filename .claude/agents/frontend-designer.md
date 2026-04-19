@@ -111,3 +111,7 @@ const Editor = dynamic(() => import('./editor'), { ssr: false });
 ---
 
 *Version: 1.0*
+
+---
+
+*Version: 3.0*

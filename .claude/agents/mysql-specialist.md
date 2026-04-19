@@ -117,3 +117,7 @@ WHERE TABLE_SCHEMA = 'tariff_refund_helper_site'
 ---
 
 *Version: 1.0*
+
+---
+
+*Version: 3.0*
