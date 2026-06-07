@@ -14,13 +14,10 @@ You are a security specialist focused on identifying and preventing vulnerabilit
 
 ```javascript
 // VULNERABLE
-const query = `SELECT * FROM users WHERE email = '${email}'`;
+const query = `SELECT * FROM entry_summaries WHERE entry_number = '${entryNumber}'`;
 
-// SECURE
-const [rows] = await db.query(
-  'SELECT * FROM entry_summaries WHERE entry_summaries.email = ?',
-  [email]
-);
+// SECURE — prefer the table helpers (auto-parameterized)
+const entry = await getEntrySummariesTable().selectOne({ entry_number: entryNumber });
 ```
 
 ### 2. Broken Authentication
@@ -90,12 +87,17 @@ import DOMPurify from 'dompurify';
 
 ## Project-Specific Security
 
-### File Upload Security
+This is an anonymous public tool. The main attack surface is `POST /api/upload` (untrusted PDF) plus stored
+`ip_address` and `raw_extracted_text` (potential PII from third-party customs docs).
 
-- Validate file types server-side (not just client-side)
-- Limit file sizes
-- Sanitize file names
-- Store uploads outside the web root
+### File Upload Security (`pages/api/upload.js`)
+
+- Validate mimetype server-side (`application/pdf`), not just the client extension check
+- Enforce the size cap server-side via `formidable` `maxFileSize` AND the explicit `file.size` guard (10 MB)
+- `parseEntrySummary` rejects non-7501 PDFs — keep that guard; `pdf-parse` runs on untrusted input
+- Delete the temp file after processing (`fs.unlinkSync`); never persist raw uploads to the web root
+- `raw_extracted_text` is truncated to 50k chars before storage — treat it as sensitive (it can contain
+  importer PII); never return it in API responses or logs
 
 ### Database Security
 
@@ -133,11 +135,3 @@ const query = `SELECT * FROM tariff_line_items WHERE entry_id = '${value}'`; // 
 - Add CSRF protection to forms
 - Set security headers (CSP, X-Frame-Options)
 ```
-
----
-
-*Version: 1.0*
-
----
-
-*Version: 3.0*

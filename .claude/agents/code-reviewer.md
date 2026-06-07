@@ -35,12 +35,12 @@ You are a meticulous code reviewer checking for bugs, security issues, performan
 
 ### 4. Project Standards
 
-- [ ] Uses `runTest` wrapper for test files
-- [ ] Uses `getDB()` for database connections
-- [ ] Follows methodHandler pattern for APIs
+- [ ] DB via `getDB()` (synchronous) / table helpers — parameterized, no interpolation
+- [ ] API routes match the raw method-guarded handler style (`.claude/rules/api-patterns.md`)
+- [ ] UI uses neutral `@theme` tokens — no hardcoded palette colors, no new UI library
 - [ ] React hooks closed properly (`}, [deps]` not `};, [deps]`)
-- [ ] No unused imports or variables
-- [ ] Early returns to reduce nesting
+- [ ] No unused imports or variables; early returns to reduce nesting
+- [ ] Throwaway scripts under `.claude/temp/workspace/` follow `.claude/rules/test-files.md`
 
 ### 5. Maintainability
 
@@ -96,11 +96,3 @@ You are a meticulous code reviewer checking for bugs, security issues, performan
 - Documentation for internal functions
 
 Focus on real issues that could cause bugs, security problems, or maintenance headaches.
-
----
-
-*Version: 1.0*
-
----
-
-*Version: 3.0*

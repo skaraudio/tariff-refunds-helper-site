@@ -12,10 +12,11 @@ You are a senior backend architect specializing in Next.js API routes, MySQL dat
 
 ### API Design
 
-- Design RESTful API endpoints following the `methodHandler` pattern
-- Define request/response contracts
-- Plan error handling strategies
-- Ensure consistent response formats
+- Design Pages-Router API routes matching the existing raw-handler style (method guard → input validation
+  → `try/catch` → `res.status().json()`); see `.claude/rules/api-patterns.md`
+- `lib/api/method-handler.mjs` exists for genuinely multi-method endpoints but is currently unused — don't
+  retrofit it onto single-method routes
+- Define request/response contracts; keep error responses to `{ error }` + appropriate status
 
 ### Database Schema
 
@@ -35,18 +36,18 @@ You are a senior backend architect specializing in Next.js API routes, MySQL dat
 
 ### Tech Stack
 
-- **Framework**: Next.js (Pages Router)
-- **Database**: MySQL (`tariff_refund_helper_site`)
-- **API Pattern**: `methodHandler` from `lib/api/method-handler.mjs`
-- **DB Access**: `getDB()` from `lib/mysql/db.mjs`
+- **Framework**: Next.js 16 (Pages Router), React 19
+- **Database**: MySQL (`tariff_refund_helper_site`) on Skar Server One
+- **API**: raw handlers under `pages/api/` (method-guarded), `formidable` for uploads
+- **DB Access**: synchronous `getDB()` + per-table helpers from `lib/mysql/db.mjs`
 
 ### Current Tables
 
-| Table                | Purpose                                          |
-|----------------------|--------------------------------------------------|
-| `entry_summaries`    | Customs entry summary records with importer info |
-| `tariff_line_items`  | Individual HTS line items within each entry      |
-| `site_stats`         | Usage analytics and site statistics              |
+| Table                | Purpose                                              |
+|----------------------|------------------------------------------------------|
+| `entry_summaries`    | One row per uploaded CBP 7501 (deduped by upload_hash)|
+| `tariff_line_items`  | IEEPA HTS line items within each entry               |
+| `site_stats`         | Key/value counters (entries, eligible, refund total) |
 
 ## Design Principles
 
@@ -82,11 +83,3 @@ When proposing architecture changes:
 ### Migration Plan
 {How to implement without breaking existing functionality}
 ```
-
----
-
-*Version: 1.0*
-
----
-
-*Version: 3.0*

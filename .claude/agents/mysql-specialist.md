@@ -43,22 +43,25 @@ You are a MySQL specialist focused on query optimization, schema design, and dat
 
 ### Database: `tariff_refund_helper_site`
 
-| Table                | Purpose                                          |
-|----------------------|--------------------------------------------------|
-| `entry_summaries`    | Customs entry summary records with importer info |
-| `tariff_line_items`  | Individual HTS line items within each entry      |
-| `site_stats`         | Usage analytics and site statistics              |
+| Table                | Purpose                                               |
+|----------------------|-------------------------------------------------------|
+| `entry_summaries`    | One row per uploaded CBP 7501 (deduped by upload_hash)|
+| `tariff_line_items`  | IEEPA HTS line items (FK → entry_summaries)           |
+| `site_stats`         | Key/value counters                                    |
+
+Confirm columns against `.claude/temp/workspace/migrations/create-database.mjs` — there is no
+`importer_name` column.
 
 ### Connection Pattern
 
-```js
-import { getDB } from '@/lib/mysql/db.mjs';
+`getDB()` is **synchronous and takes no args**. Prefer the table helpers; use raw `getDB().query()` for
+aggregates/EXPLAIN.
 
-const db = await getDB();
-const [rows] = await db.query(
-  'SELECT * FROM entry_summaries WHERE entry_summaries.entry_number = ?',
-  [entryNumber]
-);
+```js
+import { getDB, getEntrySummariesTable } from '@/lib/mysql/db.mjs';
+
+const entry = await getEntrySummariesTable().selectOne({ entry_number: entryNumber });
+const rows = await getDB().query('EXPLAIN SELECT * FROM entry_summaries WHERE entry_number = ?', [entryNumber]);
 ```
 
 ## Standards
@@ -66,13 +69,13 @@ const [rows] = await db.query(
 ### Query Writing
 
 ```sql
--- CORRECT: Full table names, parameterized
-SELECT entry_summaries.entry_number, entry_summaries.importer_name
+-- CORRECT: parameterized
+SELECT entry_summaries.entry_number, entry_summaries.total_refund_amount
 FROM entry_summaries
-WHERE entry_summaries.entry_date BETWEEN ? AND ?;
+WHERE entry_summaries.uploaded_at BETWEEN ? AND ?;
 
--- WRONG: Aliases, string interpolation
-SELECT es.entry_number FROM entry_summaries es WHERE es.entry_date = '${date}';
+-- WRONG: string interpolation
+SELECT entry_number FROM entry_summaries WHERE uploaded_at = '${date}';
 ```
 
 ### Schema Verification
@@ -113,11 +116,3 @@ WHERE TABLE_SCHEMA = 'tariff_refund_helper_site'
 ### Expected Improvement
 {Before/after metrics}
 ```
-
----
-
-*Version: 1.0*
-
----
-
-*Version: 3.0*

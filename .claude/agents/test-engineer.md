@@ -32,82 +32,55 @@ You are a test engineering specialist focused on creating comprehensive, maintai
 
 ## Project Test Conventions
 
-### Test File Location
+**There is no `test/` dir or `runTest()` harness in this repo yet.** Write verification scripts as plain
+`node` files under `.claude/temp/workspace/` (gitignored) and follow `.claude/rules/test-files.md`: arrow
+functions only, a thin top-level wrapper that holds config + one call into helpers below it, minimal
+comments, `chalk` colors when available, `[N/total]` progress on loops > 3 items. Load `.env` yourself if
+the script needs DB env vars.
 
-| Test Type                | Location                                            |
-|--------------------------|-----------------------------------------------------|
-| User-requested tests     | `/test/`                                            |
-| Self-verification tests  | `.claude/temp/workspace/self-tests/test-{name}/`    |
+### Verifying the Upload Flow
 
-### Test Runner
-
-Use the `runTest` wrapper from `test/bootstrap.js`:
-
-```javascript
-import { runTest } from '../bootstrap.js';
-
-const testEntryLookup = async () => {
-  // Test implementation
-  const result = await lookupEntry('123-4567890-1');
-
-  if (!result) throw new Error('Expected result, got null');
-  if (result.entry_number !== '123-4567890-1') {
-    throw new Error(`Expected entry_number '123-4567890-1', got '${result.entry_number}'`);
-  }
-
-  console.log('PASS: Entry lookup returned correct data');
-};
-
-runTest(() => testEntryLookup());
-```
-
-**Key conventions:**
-- `runTest()` auto-loads `.env` — never manually load dotenv
-- Don't call `process.exit()` — the wrapper handles cleanup
-- Run tests with: `node --experimental-vm-modules <test-file>`
-
-### API Endpoint Testing
+The single real write endpoint is `POST /api/upload` (multipart, field name `file`, PDF only). Sample CBP
+7501 PDFs live in `.claude/temp/example-entry-summaries/`. The dev server runs on port **3014**.
 
 ```javascript
-import { runTest } from '../bootstrap.js';
+import fs from 'fs';
+import path from 'path';
 
-const testCheckEndpoint = async () => {
-  const response = await fetch('http://localhost:3000/api/check-eligibility', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      entry_number: '123-4567890-1',
-      hts_code: '8518.40.20',
-    }),
-  });
+const PDF_DIR = '.claude/temp/example-entry-summaries';
 
-  const data = await response.json();
+const verifyUpload = async () => {
+  const file = fs.readdirSync(PDF_DIR).find((f) => f.endsWith('.pdf'));
+  const form = new FormData();
+  form.append('file', new Blob([fs.readFileSync(path.join(PDF_DIR, file))]), file);
 
-  if (response.status !== 200) {
-    throw new Error(`Expected 200, got ${response.status}: ${JSON.stringify(data)}`);
-  }
-
-  console.log('PASS: Check eligibility endpoint works');
+  const res = await fetch('http://localhost:3014/api/upload', { method: 'POST', body: form });
+  const data = await res.json();
+  if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}: ${JSON.stringify(data)}`);
+  console.log('PASS: upload returned', data.result?.totalRefundAmount);
 };
 
-runTest(() => testCheckEndpoint());
+verifyUpload();
 ```
 
-### Database Testing
+### Verifying Parser Logic (no server, no DB)
+
+Prefer unit-style checks straight against `lib/pdf/parse-entry-summary.mjs` — it is pure given a buffer:
 
 ```javascript
-import { getDB } from '../../lib/mysql/db.mjs';
+import { parseEntrySummary } from '../../../lib/pdf/parse-entry-summary.mjs';
 
-const testDatabaseQueries = async () => {
-  const db = await getDB();
-
-  // Test query execution
-  const [rows] = await db.query('SELECT 1 AS test');
-  if (rows[0].test !== 1) throw new Error('Database connection failed');
-
-  console.log('PASS: Database connection works');
+const verifyParse = async (buffer) => {
+  const out = await parseEntrySummary(buffer);
+  if (out.isEligible !== out.lineItems.length > 0) throw new Error('eligibility mismatch');
+  console.log('PASS:', out.htsCodesFound);
 };
 ```
+
+### Verifying the DB
+
+`getDB()` is synchronous; prefer the table helpers (`getEntrySummariesTable()` etc.) from
+`lib/mysql/db.mjs`. Use `getDB().query('SELECT 1 AS ok')` only for a raw connectivity check.
 
 ## Test Quality Standards
 
@@ -138,11 +111,3 @@ const testDatabaseQueries = async () => {
 ### Coverage Gaps
 - {Untested area that needs attention}
 ```
-
----
-
-*Version: 1.0*
-
----
-
-*Version: 3.0*
