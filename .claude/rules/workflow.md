@@ -50,7 +50,3 @@ Clean up `.claude/temp/workspace/` contents after task completion.
 - When interrupted by failure, maintain awareness of original task
 - After fixing, continue from where you left off
 - Use task list to track both fix and original task
-
----
-
-*Version: 3.0*

@@ -61,35 +61,36 @@ paths:
 
 ---
 
-## UI Component Standards - shadcn/ui
+## UI Standards — Hand-Rolled Tailwind 4, Neutral-Only
 
-**All React UI must use shadcn/ui components exclusively.**
+**There is no shadcn/ui and no `components/ui/` in this repo.** Components are hand-rolled `div`/`button`
+elements styled with raw Tailwind 4 utilities. The neutral palette is enforced through the `@theme` tokens
+in `styles/globals.css`, not a component library. Build new UI the same way; do not add shadcn or any other
+UI library.
 
-### Color Philosophy
+### Color Philosophy — Neutral Black/White/Gray + Minimal Accent
 
-**shadcn uses NEUTRAL, BLACK & WHITE with minimal color accents.**
+| Element        | Correct                                | Wrong                       |
+|----------------|----------------------------------------|-----------------------------|
+| Buttons        | neutral: `bg-foreground text-background` / `border border-border` | `className="bg-blue-600"` |
+| Links          | inherit foreground, `hover:underline`  | `className="text-blue-600"` |
+| Secondary text | `text-muted-foreground`                | `text-gray-500`             |
+| Icons          | `text-muted-foreground`                | `text-green-500`            |
+| Errors only    | `text-destructive`                     | N/A                         |
+| Success only   | `text-success`                         | `text-green-600`            |
 
-| Element        | Correct                       | Wrong                       |
-|----------------|-------------------------------|-----------------------------|
-| Buttons        | `variant="default"` (black)   | `className="bg-blue-600"`   |
-| Links          | Inherits foreground (dark)    | `className="text-blue-600"` |
-| Badges         | `variant` props               | Custom color classes        |
-| Secondary text | `text-muted-foreground`       | `text-gray-500`             |
-| Icons          | `text-muted-foreground`       | `text-green-500`            |
-| Errors only    | `variant="destructive"` (red) | N/A                         |
-
-### Allowed Color Tokens
+### Allowed Theme Tokens (defined in `styles/globals.css`)
 
 ```
-text-foreground          # Main text (black/dark)
-text-muted-foreground    # Secondary text (gray)
-text-destructive         # Errors only (red)
-bg-background            # Page background
-bg-card                  # Card background
-bg-muted                 # Muted background
-bg-secondary             # Secondary background
-border / border-input    # Borders (light gray)
+bg-background / text-foreground          # page bg + main text (white / near-black)
+text-muted-foreground                    # secondary text (gray)
+bg-muted / bg-card / bg-secondary        # surfaces
+border-border / border-input             # borders (light gray)
+text-destructive                         # errors only (red)
+text-success                             # positive / eligible only (green)
 ```
+
+Animation: `framer-motion`. Icons: `lucide-react` only.
 
 ---
 
@@ -156,17 +157,8 @@ const config = {
 
 ## Prohibited Practices
 
-1. Hardcoded colors (`text-green-600`, `bg-blue-500`)
-2. Bypassing semantic components with custom divs
-3. `font-bold` instead of `font-semibold` for metrics
-4. Missing `tabular-nums` on numbers
-5. Custom CSS classes or inline styles
-6. Mixing other UI libraries with shadcn
-
----
-
-*Version: 1.0*
-
----
-
-*Version: 3.0*
+1. Hardcoded palette colors (`text-green-600`, `bg-blue-500`) — use theme tokens
+2. `font-bold` instead of `font-semibold` for metrics/headings
+3. Missing `tabular-nums` on displayed numbers
+4. Adding shadcn/ui or any other UI component library
+5. New global CSS classes when a Tailwind utility will do

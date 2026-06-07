@@ -48,9 +48,5 @@ For complex tasks, create execution docs in `.claude/temp/.md/execution/`:
 
 ## Context Management
 
-- If 30+ minutes since reading instructions, re-read CLAUDE.md
+- If 30+ minutes since reading instructions, re-read AGENTS.md
 - Summarize progress in task list when context gets long
-
----
-
-*Version: 3.0*

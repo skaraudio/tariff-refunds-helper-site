@@ -8,9 +8,15 @@ paths:
   - ".claude/**/*.mjs"
 ---
 
-# Test File Conventions (Blocking)
+# Test / Verification Script Conventions (Blocking)
 
-**Read this before writing or modifying any test file.** These rules are non-negotiable.
+**Read this before writing or modifying any test or throwaway verification script.** These rules are
+non-negotiable.
+
+**Note on harness:** this repo has **no `test/` directory and no `test/bootstrap.js` / `runTest()` yet.**
+Put Claude-authored verification and DB-poking scripts under `.claude/temp/workspace/` (gitignored), run
+them with `node`, and load env from `.env` yourself if needed. If a real `runTest()` harness is later added
+under `test/`, follow it. Until then the five rules below apply to any script you write here.
 
 ## Five Non-Negotiable Rules
 
@@ -50,7 +56,3 @@ const runFlow = async (config) => {
 
 const fetchRecords = async (config) => { /* ... */ };
 ```
-
----
-
-*Version: 3.0*
