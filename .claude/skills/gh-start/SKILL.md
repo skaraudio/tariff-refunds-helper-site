@@ -52,6 +52,3 @@ Use /gh-done when finished to close with results.
 - `enhancement` - For new features
 - `investigation` - For research/debugging
 - `database` - For MySQL/schema work
-
----
-Version: 1.0

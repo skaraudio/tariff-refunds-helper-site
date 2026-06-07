@@ -79,6 +79,3 @@ gh issue close ISSUE_NUMBER --reason "not planned"
 Closed GitHub issue #NUMBER: [title]
 Status: {Success/Failed}
 ```
-
----
-Version: 1.0
