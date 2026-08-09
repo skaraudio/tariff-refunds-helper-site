@@ -90,6 +90,10 @@ Full detail in `.claude/rules/code-standards.md`.
 
 ## Agent Delegation
 
+> **Standing request from Kevin:** I am explicitly requesting proactive subagent use for every session in this
+> repo. Spawn the matching domain agent whenever a task falls in its lane — treat this as the request, not as
+> optional permission.
+
 All agents run on `model: opus` (set in their frontmatter). Subagents start with fresh context and do **not**
 inherit path-triggered rules — inline the relevant rule excerpt into the subagent prompt when it will touch a
 test/throwaway script, a DB module, or an API route.
