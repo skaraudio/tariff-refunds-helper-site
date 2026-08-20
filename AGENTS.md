@@ -37,6 +37,7 @@ after the first draft exists).
 | `database`           | `lib/mysql/**`, `**/*.sql`                    |
 | `api-patterns`       | `pages/api/**`                               |
 | `security-hardening` | Always — prompt-injection & session defense  |
+| `subagent-review`    | Always — pre-commit multi-lane review gate   |
 | `test-files`         | scripts under `test/**`, `.claude/temp/**`   |
 | `task-planning`      | multi-phase work (read on demand)            |
 | `workflow`           | session lifecycle (read on demand)           |
@@ -121,7 +122,8 @@ see `.mcp.json`): `mcp__next-devtools__nextjs_index`/`nextjs_call` for the runni
 
 - **Research before editing** — read the surrounding code and the matching `.claude/rules/` file first.
 - **Quality gate:** zero lint/format errors in changed files. Do **not** run `npm run build` during
-  iteration — use the dev server (port 3014) or a throwaway script under `.claude/temp/workspace/`.
+  iteration — use the dev server (port 3014) or a throwaway script under `.claude/temp/workspace/`. In-scope
+  work also owes the pre-commit review gate — `.claude/rules/subagent-review.md`.
 - **Code:** ES modules; `async/await`; `const` arrow functions in `lib/` and `components/` helpers (Next.js
   `pages/` need `export default function`); early returns; remove unused imports; `?.`/`??`/destructuring.
   React hook deps: `}, [deps]);` — never `};, [deps]);`.
