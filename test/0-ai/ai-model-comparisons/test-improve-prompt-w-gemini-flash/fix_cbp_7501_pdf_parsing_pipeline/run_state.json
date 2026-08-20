@@ -1,0 +1,792 @@
+{
+  "schema": 2,
+  "run_id": "fix_cbp_7501_pdf_parsing_pipeline",
+  "status": "complete",
+  "started_at": "2026-08-20T15:01:33.688Z",
+  "tool": "test-improve-prompt-w-gemini-flash.mjs",
+  "config": {
+    "model": "gemini-3.7-flash",
+    "model_pin": "gemini-3.7-flash",
+    "model_source": "pin confirmed present in models.list()",
+    "thinking_level": "high",
+    "depth": "engineered",
+    "identifier_policy": "resolve-at-runtime",
+    "max_output_tokens": 32768,
+    "review_rounds": 3,
+    "target_score": 95,
+    "max_repair_rounds": 1,
+    "target_agent": "Claude Code — an autonomous coding agent working in tariff-refunds-helper-site, a public Next.js 16 Pages Router + MySQL site where importers upload CBP Form 7501 PDFs to find IEEPA tariff refunds",
+    "extra_guidance": ""
+  },
+  "workspace": {
+    "readme": "generated",
+    "context": "bootstrapped",
+    "readmeValidation": {
+      "score": 96,
+      "attempts": 1,
+      "issues": [
+        {
+          "severity": "low",
+          "claim": "HTTP statuses 429, 500, 502, 503, 504 and rate limit messages are retried up to 3 times with exponential backoff (base 4000ms).",
+          "correction": "withTransientRetry enforces MAX_ATTEMPTS = 3 (allowing up to 3 total attempts, or 2 retries) using linear backoff (RETRY_BASE_DELAY_MS * attempt, i.e., 4000ms, then 8000ms), not exponential backoff."
+        },
+        {
+          "severity": "low",
+          "claim": "Early exit occurs if the target score is achieved with zero uncovered requirements and zero lint issues.",
+          "correction": "In runReviewLadder, early exit requires index >= 1, meaning at least two review rounds must execute before an early exit can trigger."
+        }
+      ],
+      "missing_keys": [],
+      "invented_keys": []
+    },
+    "briefWarnings": [
+      "operating brief names a path that does not exist: .claude/settings"
+    ],
+    "usage": {
+      "inputTokens": 91426,
+      "outputTokens": 25790
+    }
+  },
+  "repo_context": {
+    "fingerprint": "511d47eaffc43095a84bdf59ac8f10c7e1a1987b",
+    "files": 28,
+    "from_cache": false,
+    "clis": [
+      "git",
+      "gh",
+      "aws",
+      "vercel",
+      "gcloud",
+      "ngrok",
+      "node",
+      "npm",
+      "python",
+      "docker"
+    ]
+  },
+  "lessons_applied": [],
+  "prior_runs": {
+    "count": 0,
+    "average_score": null,
+    "best_score": null
+  },
+  "original_prompt": "so the pdf parsing in lib/pdf/parse-entry-summary.mjs is way too fragile right now, pdf-parse hands us the 7501 text with the columns concatenated together with no spaces so the regexes miss line items and we end up storing isEligible false on entries that actually do have 9903.01.xx IEEPA lines on them which is the worst possible outcome for the user. I want you to walk the whole upload flow end to end starting at pages/api/upload.js with the bodyParser disabled formidable multipart handler through parseEntrySummary and into the entry_summaries + tariff_line_items inserts and the site_stats bump, and find every single place a line item can get silently dropped or a duty_amount misread, then fix it and also store some kind of parse confidence / quality signal on the entry_summaries row so we can go back later and tell which uploads need re-running, and the status enum needs to actually mean something instead of every row getting the same value. While your in there RefundResults.jsx and the results view need to actually tell the user when we could not parse the pdf cleanly instead of just showing them a zero refund like everything is fine, keep it neutral black white gray with the @theme tokens in styles/globals.css, no blue or green tailwind palette colors. Use the mysql-specialist agent for anything touching lib/mysql and the test-engineer agent for the verification scripts, dont run npm run build, use the dev server on 3014, and prove the parser fix with throwaway scripts under .claude/temp/workspace against a few real 7501 pdfs before you change any of the db code.",
+  "analysis": {
+    "file_slug": "fix_cbp_7501_pdf_parsing_pipeline",
+    "objective": "Harden the CBP Form 7501 PDF parsing and database ingestion pipeline to accurately extract IEEPA line items and duty amounts from unspaced concatenated text, record parse confidence and status metrics in MySQL, and surface parsing degradation states cleanly in the UI.",
+    "requirements": [
+      {
+        "id": "R1",
+        "kind": "explicit",
+        "requirement": "Audit the end-to-end upload flow starting at pages/api/upload.js (with bodyParser disabled and Formidable multipart handling) through lib/pdf/parse-entry-summary.mjs (parseEntrySummary) and into entry_summaries and tariff_line_items inserts plus site_stats incrementing to identify every failure mode where a line item is silently dropped or a duty_amount is misread.",
+        "source_text": "I want you to walk the whole upload flow end to end starting at pages/api/upload.js with the bodyParser disabled formidable multipart handler through parseEntrySummary and into the entry_summaries + tariff_line_items inserts and the site_stats bump, and find every single place a line item can get silently dropped or a duty_amount misread"
+      },
+      {
+        "id": "R2",
+        "kind": "explicit",
+        "requirement": "Fix the PDF text extraction and regex parsing logic in lib/pdf/parse-entry-summary.mjs so that concatenated column text produced by pdf-parse without spaces does not cause regexes to miss 9903.01.xx IEEPA line items, miscalculate duty amounts, or incorrectly store isEligible as false for eligible entries.",
+        "source_text": "pdf parsing in lib/pdf/parse-entry-summary.mjs is way too fragile right now, pdf-parse hands us the 7501 text with the columns concatenated together with no spaces so the regexes miss line items and we end up storing isEligible false on entries that actually do have 9903.01.xx IEEPA lines on them which is the worst possible outcome for the user... then fix it"
+      },
+      {
+        "id": "R3",
+        "kind": "explicit",
+        "requirement": "Store a parse confidence / quality signal on the entry_summaries table row so that low-confidence or degraded uploads can be identified and re-processed later.",
+        "source_text": "also store some kind of parse confidence / quality signal on the entry_summaries row so we can go back later and tell which uploads need re-running"
+      },
+      {
+        "id": "R4",
+        "kind": "explicit",
+        "requirement": "Update the status enum column on entry_summaries so that it reflects meaningful distinct processing states rather than assigning the same static value to every row.",
+        "source_text": "and the status enum needs to actually mean something instead of every row getting the same value"
+      },
+      {
+        "id": "R5",
+        "kind": "explicit",
+        "requirement": "Update RefundResults.jsx and the results view to explicitly inform the user when a PDF cannot be parsed cleanly instead of showing a false $0.00 refund.",
+        "source_text": "While your in there RefundResults.jsx and the results view need to actually tell the user when we could not parse the pdf cleanly instead of just showing them a zero refund like everything is fine"
+      },
+      {
+        "id": "R6",
+        "kind": "explicit",
+        "requirement": "Style the updated RefundResults.jsx and results view strictly in neutral black, white, and gray using the Tailwind 4 @theme design tokens in styles/globals.css, without using blue or green Tailwind palette colors.",
+        "source_text": "keep it neutral black white gray with the @theme tokens in styles/globals.css, no blue or green tailwind palette colors"
+      },
+      {
+        "id": "R7",
+        "kind": "explicit",
+        "requirement": "Use the mysql-specialist subagent for all tasks modifying files or schema under lib/mysql.",
+        "source_text": "Use the mysql-specialist agent for anything touching lib/mysql"
+      },
+      {
+        "id": "R8",
+        "kind": "explicit",
+        "requirement": "Use the test-engineer subagent for creating and executing verification scripts.",
+        "source_text": "and the test-engineer agent for the verification scripts"
+      },
+      {
+        "id": "R9",
+        "kind": "explicit",
+        "requirement": "Do not run npm run build; verify changes against the local dev server running on port 3014.",
+        "source_text": "dont run npm run build, use the dev server on 3014"
+      },
+      {
+        "id": "R10",
+        "kind": "explicit",
+        "requirement": "Prove the parser fixes using throwaway scripts under .claude/temp/workspace/ against sample CBP Form 7501 PDFs before altering any database code or schema.",
+        "source_text": "and prove the parser fix with throwaway scripts under .claude/temp/workspace against a few real 7501 pdfs before you change any of the db code"
+      },
+      {
+        "id": "R11",
+        "kind": "implied",
+        "requirement": "Inspect the live schema via INFORMATION_SCHEMA.COLUMNS where TABLE_SCHEMA = 'tariff_refund_helper_site' before writing database migration scripts or modifying table helper insert queries.",
+        "source_text": ""
+      },
+      {
+        "id": "R12",
+        "kind": "implied",
+        "requirement": "Wrap multi-table database operations across entry_summaries, tariff_line_items, and site_stats inside getDB().transaction(cb) to maintain transactional atomicity during file upload processing.",
+        "source_text": ""
+      }
+    ],
+    "implied_mechanics": [
+      "Execute in strict phases: Phase 1 reproduces parse issues on sample PDFs in .claude/temp/example-entry-summaries/ using throwaway test scripts in .claude/temp/workspace/; Phase 2 hardens lib/pdf/parse-entry-summary.mjs; Phase 3 migrates database schema via .claude/temp/workspace/migrations/ and updates pages/api/upload.js; Phase 4 updates RefundResults.jsx UI; Phase 5 runs full end-to-end verification.",
+      "Spawn subagents on model: opus with inlined path-triggered rule excerpts since subagents run in fresh context without inherited rules.",
+      "Discover real 7501 PDF samples with known 9903.01.xx HTS lines in .claude/temp/example-entry-summaries/ to benchmark extraction accuracy before and after regex refactoring.",
+      "Ensure all test and migration scripts reside strictly under .claude/temp/workspace/ and are cleaned up at session end."
+    ],
+    "failure_modes": [
+      "Modifying database schema or table helper insert logic before verifying parser fixes on actual sample PDFs from .claude/temp/example-entry-summaries/.",
+      "Hardcoding palette colors (e.g. text-red-500, bg-yellow-50, text-blue-600) in RefundResults.jsx instead of neutral @theme semantic tokens (e.g. text-destructive, border-border).",
+      "Running npm run build during iteration, which violates repo rules and disrupts the local development environment.",
+      "Placing verification scripts in root test/ or scripts/ directories instead of .claude/temp/workspace/.",
+      "Writing multi-table database updates in pages/api/upload.js without getDB().transaction(cb), causing partial records on mid-insert failures.",
+      "Assuming column names like importer_name exist on entry_summaries without checking INFORMATION_SCHEMA.COLUMNS.",
+      "Treating low-confidence parses as 0-refund successes rather than emitting explicit degraded parse signals to both the database and the frontend."
+    ],
+    "ambiguities": [
+      "Parse confidence / quality representation on entry_summaries: The prompt asks for 'some kind of parse confidence / quality signal'. Safest resolution: Add a parse_confidence DECIMAL(3,2) (or FLOAT 0.00-1.00) column along with a parse_quality ENUM('high', 'medium', 'low', 'failed') and optional warnings JSON column to entry_summaries via a JavaScript migration script in .claude/temp/workspace/migrations/.",
+      "Status enum values on entry_summaries: The prompt states the status enum needs to mean something instead of every row receiving the same value. Safest resolution: Update the status ENUM to include distinct operational states such as 'processed', 'flagged_for_review', 'partial_parse', 'parse_failed', and 'duplicate', assigned based on parse confidence and extraction success.",
+      "Unparseable UI UX handling in RefundResults.jsx: The prompt requires telling the user when the PDF could not be parsed cleanly instead of showing $0. Safest resolution: When parse_quality is 'low', 'failed', or status is 'flagged_for_review'/'partial_parse', render a prominent degraded-state alert card with tabular-nums explaining the parse ambiguity, listing detected issues, and providing a manual review prompt, styled using neutral surface and text-destructive tokens without showing a false '$0.00 Refund' calculation."
+    ],
+    "mechanisms": [
+      "lib/pdf/parse-entry-summary.mjs for pure domain extraction of CBP Form 7501 line items, duty amounts, and HTS codes (^9903\\.01\\.\\d{2}$).",
+      "pages/api/upload.js formidable multipart upload route with bodyParser: false and 10 MB payload limit.",
+      "lib/mysql/db.mjs synchronous getDB() pool connector, table helpers (getEntrySummariesTable, getTariffLineItemsTable, getSiteStatsTable), and getDB().transaction(cb) atomic wrapper.",
+      ".claude/temp/example-entry-summaries/ containing 60+ sample CBP Form 7501 PDFs for parser benchmarking.",
+      ".claude/temp/workspace/ scratchpad directory for throwaway verification scripts and .claude/temp/workspace/migrations/ for database migration scripts.",
+      "styles/globals.css Tailwind CSS 4 @theme design tokens for neutral black/white/gray surfaces and semantic tokens.",
+      "components/RefundResults.jsx hand-rolled React 19 component using export const RefundResults = () => {} syntax and tabular-nums.",
+      "Subagent delegation to mysql-specialist and code-reviewer / test subagents on model: opus with inlined rules.",
+      "Local Next.js dev server on port 3014 and next-devtools MCP for route inspection without running npm run build."
+    ],
+    "perishable_identifiers": []
+  },
+  "artifacts": [
+    {
+      "label": "draft",
+      "judged_by": "review 1 · coverage & fidelity",
+      "file": "rounds/01_draft.txt",
+      "chars": 12329,
+      "score": 86,
+      "lint": [],
+      "uncovered": [
+        "R8"
+      ],
+      "dimensions": [
+        {
+          "dimension": "coverage",
+          "score": 82,
+          "finding": "R8 is weak because test-engineer is mentioned in Governing Rules but not explicitly dispatched in Phase 1, Phase 2, and Phase 5 where benchmark and verification scripts are authored and executed."
+        },
+        {
+          "dimension": "fidelity",
+          "score": 83,
+          "finding": "The prompt softens the author's instruction to 'use the test-engineer agent for the verification scripts' by treating script authoring as lead actions in Phases 1 and 5 rather than delegating them to test-engineer."
+        },
+        {
+          "dimension": "durability",
+          "score": 84,
+          "finding": "Model opus is specified with fallback instructions in Governing Rules, but the individual phase dispatch instructions do not restate the durable capability tier resolution for spawned agents."
+        },
+        {
+          "dimension": "mechanism",
+          "score": 84,
+          "finding": "Verification script delegation mechanics under .claude/temp/workspace/ need explicit dispatch blocks defining inputs, self-contained rule excerpts, and return artifacts."
+        },
+        {
+          "dimension": "delegation",
+          "score": 80,
+          "finding": "mysql-specialist, code-reviewer, and security-reviewer are explicitly dispatched in later phases, but test-engineer is omitted from active delegation in Phases 1, 2, and 5."
+        },
+        {
+          "dimension": "verification",
+          "score": 82,
+          "finding": "Verification scripts are defined, but the gate mechanics need clear assertions on pre- and post-migration execution against dev server port 3014 and sample PDFs."
+        },
+        {
+          "dimension": "checkability",
+          "score": 84,
+          "finding": "Definition of done checklist is present, but success criteria for the degraded state alert threshold in RefundResults.jsx need tighter mapping to status enum values."
+        },
+        {
+          "dimension": "failure_modes",
+          "score": 83,
+          "finding": "Failure mode where test-engineer modifies production code instead of creating throwaway scripts exclusively in .claude/temp/workspace/ is not guarded against."
+        },
+        {
+          "dimension": "invented_scope",
+          "score": 84,
+          "finding": "Phase 5 adds security-reviewer audit which was not directly requested by the author; while useful for the subagent review gate, test-engineer was the author's explicit test delegation target."
+        },
+        {
+          "dimension": "structure",
+          "score": 84,
+          "finding": "Phases are cleanly structured, but subagent dispatch instructions should be consistently declared at the start of each phase requiring specialized roles."
+        },
+        {
+          "dimension": "concision",
+          "score": 84,
+          "finding": "Governing rules and DoD are comprehensive but have minor redundancies regarding port 3014 and color token restrictions across sections."
+        },
+        {
+          "dimension": "environment_fit",
+          "score": 84,
+          "finding": "Uses verified repo landmarks and constraints, but must strictly enforce that test-engineer only writes throwaway scripts in .claude/temp/workspace/."
+        },
+        {
+          "dimension": "execution_readiness",
+          "score": 81,
+          "finding": "An agent executing the draft would write tests directly as the lead agent rather than dispatching test-engineer as instructed by the author."
+        }
+      ],
+      "verdict": "",
+      "key_changes": [
+        "Converted unstructured debugging prompt into a 5-phase work order with strict phase gates and throwaway benchmark requirements.",
+        "Defined explicit database schema additions (parse_confidence, parse_quality, parse_warnings, and meaningful status enum values) with a required migration script under .claude/temp/workspace/migrations/.",
+        "Specified exact parse quality telemetry calculation mechanics (confidence float, quality enum, warnings array, reconciliation checksum against Block 39).",
+        "Added transactional atomicity requirement using getDB().transaction(cb) in pages/api/upload.js across entry_summaries, tariff_line_items, and site_stats.",
+        "Specified exact UX behavior for degraded/failed parses in RefundResults.jsx to prevent deceptive $0.00 refund displays, enforcing neutral Tailwind 4 @theme tokens and tabular-nums.",
+        "Delegated database tasks to mysql-specialist and auditing tasks to code-reviewer/security-reviewer subagents on model: opus with inlined rules.",
+        "Enforced environment rules: testing on dev server port 3014, banning npm run build, placing all scripts in .claude/temp/workspace/, and requiring a zero-blocker subagent review gate."
+      ],
+      "open_risks": [
+        "Assumed specific operational enum values ('processed', 'flagged_for_review', 'partial_parse', 'parse_failed', 'duplicate') for the status column to replace static defaults.",
+        "Assumed confidence score is derived from Form 7501 Block 39 grand total duty reconciliation, header completeness, and unparseable line block frequency.",
+        "Assumed database migrations are executed via standalone Node.js JavaScript scripts placed in .claude/temp/workspace/migrations/ as established in repository conventions."
+      ],
+      "latency_ms": 28664,
+      "usage": {
+        "inputTokens": 6003,
+        "outputTokens": 9372,
+        "thinkingTokens": 5557
+      }
+    },
+    {
+      "label": "review 1",
+      "judged_by": "review 2 · mechanism & verification",
+      "file": "rounds/02_review_1.txt",
+      "chars": 12696,
+      "score": 84,
+      "lint": [],
+      "uncovered": [],
+      "dimensions": [
+        {
+          "dimension": "coverage",
+          "score": 88,
+          "finding": "All 12 explicit and implied requirements (R1 through R12) are present in the work order across the governing rules and 5 execution phases."
+        },
+        {
+          "dimension": "fidelity",
+          "score": 86,
+          "finding": "Literal paths, HTS regex pattern (^9903\\.01\\.\\d{2}$), model tiers, database references, and port 3014 are preserved verbatim."
+        },
+        {
+          "dimension": "durability",
+          "score": 85,
+          "finding": "Model routing references 'model: opus' as the primary tier and includes standing fallback instructions to resolve to the frontier tier if superseded."
+        },
+        {
+          "dimension": "mechanism",
+          "score": 74,
+          "finding": "Tokenization strategies for fused columns in Box 27-34, parseConfidence scoring formulas, and exact artifact shapes between phase gates are under-specified, risking shallow parsing heuristics."
+        },
+        {
+          "dimension": "delegation",
+          "score": 72,
+          "finding": "Subagents are invoked sequentially without defining explicit batch dispatches, self-contained rule inlining packages, strict read-only/write file boundaries, or standard reviewer finding schemas."
+        },
+        {
+          "dimension": "verification",
+          "score": 75,
+          "finding": "Phase 5 testing asks to upload '5+ representative PDFs' but lacks an enumerated test matrix of distinct failure modes, CLI invocation commands, expected HTTP status codes, and DB state assertions."
+        },
+        {
+          "dimension": "checkability",
+          "score": 76,
+          "finding": "Criteria such as 'handle unspaced and concatenated text' lack concrete test inputs and output reconciliation formulas, making incomplete extraction hard to falsify."
+        },
+        {
+          "dimension": "failure_modes",
+          "score": 78,
+          "finding": "Transaction failure testing does not explicitly require mid-insert multi-line rollbacks, and schema discovery does not explicitly mandate asserting against create-database.mjs."
+        },
+        {
+          "dimension": "invented_scope",
+          "score": 92,
+          "finding": "Strictly adheres to author's requested pipeline hardening, schema telemetry, upload route transactionality, and UI degraded states without unrequested abstractions or dependencies."
+        },
+        {
+          "dimension": "structure",
+          "score": 86,
+          "finding": "Follows a logical 5-phase waterfall with explicit gates preventing database changes before parser verification."
+        },
+        {
+          "dimension": "concision",
+          "score": 88,
+          "finding": "Commands are direct and imperative without meta-commentary or extraneous prose."
+        },
+        {
+          "dimension": "environment_fit",
+          "score": 87,
+          "finding": "Accurately targets Next.js 16 Pages Router, Tailwind 4 @theme tokens, Skar Server One MySQL pool, and .claude/temp/workspace/ scratchpad constraints."
+        },
+        {
+          "dimension": "execution_readiness",
+          "score": 76,
+          "finding": "An agent executing the current draft would have to invent test harness scripts, parser reconciliation math, and parallel review gate briefs from scratch."
+        }
+      ],
+      "verdict": "",
+      "key_changes": [
+        "Explicitly delegated all verification and benchmark script authoring (in Phase 1, Phase 2, Phase 3 Gate, and Phase 5) to the test-engineer subagent on model: opus (with capability tier fallback), fully satisfying R8.",
+        "Explicitly aligned subagent delegation across all phases to mysql-specialist (for DB/migration tasks), test-engineer (for verification/benchmark scripts), and code-reviewer (for final audit gates).",
+        "Tightened durability instructions across all subagent dispatch points to ensure model tier fallbacks and runtime disclosure requirements are clear.",
+        "Ensured all durable literals (paths, table names, regexes, port numbers) remain verbatim from the author's prompt and operating context."
+      ],
+      "open_risks": [
+        "PDF-parse output structure on heavily corrupted or multi-page 7501 forms may contain non-standard field ordering that requires iterative regex adjustments during Phase 1 benchmarking.",
+        "Dev server on port 3014 must remain active and healthy across test-engineer script execution runs."
+      ],
+      "latency_ms": 19335,
+      "usage": {
+        "inputTokens": 9662,
+        "outputTokens": 9191,
+        "thinkingTokens": 4274
+      }
+    },
+    {
+      "label": "review 2",
+      "judged_by": "review 3 · adversarial execution simulation",
+      "file": "rounds/03_review_2.txt",
+      "chars": 16497,
+      "score": 89,
+      "lint": [],
+      "uncovered": [],
+      "dimensions": [
+        {
+          "dimension": "coverage",
+          "score": 92,
+          "finding": "All 12 explicit and implied requirements are present across the discovery, refactoring, migration, UI, and verification sections."
+        },
+        {
+          "dimension": "fidelity",
+          "score": 92,
+          "finding": "Durable literals (file paths, regex pattern ^9903\\.01\\.\\d{2}$, port 3014, table names) are preserved verbatim, while perishable subagent model designations carry proper capability tier fallbacks."
+        },
+        {
+          "dimension": "durability",
+          "score": 90,
+          "finding": "Subagent model routing explicitly names 'model: opus' while specifying fallback instructions to the highest available frontier capability tier."
+        },
+        {
+          "dimension": "mechanism",
+          "score": 88,
+          "finding": "Operating mechanics for parsing tokenization, telemetry calculation, transactional atomicity, and subagent dispatch are specified in actionable detail."
+        },
+        {
+          "dimension": "delegation",
+          "score": 86,
+          "finding": "Subagent roles (mysql-specialist, test-engineer, code-reviewer, security-reviewer, frontend-designer) have defined domains, self-contained rule context requirements, and output report schemas."
+        },
+        {
+          "dimension": "verification",
+          "score": 90,
+          "finding": "Includes an enumerated 6-scenario end-to-end test matrix and a 4-lane parallel subagent review gate against a shared git snapshot."
+        },
+        {
+          "dimension": "checkability",
+          "score": 90,
+          "finding": "All success criteria and definition of done items are checkable via workspace scripts, dev server API endpoints, and schema inspection."
+        },
+        {
+          "dimension": "failure_modes",
+          "score": 88,
+          "finding": "Explicitly prevents common pitfalls such as running npm run build, guessing non-existent columns like importer_name, hardcoding palette colors, or modifying DB schema prior to parser benchmarking."
+        },
+        {
+          "dimension": "invented_scope",
+          "score": 95,
+          "finding": "Remains strictly within the author's mandate of parser hardening, telemetry persistence, status enum refinement, and neutral degraded UI presentation."
+        },
+        {
+          "dimension": "structure",
+          "score": 82,
+          "finding": "Redundant descriptions of database transaction rules and color prohibitions between Standing Instructions and individual phase steps create minor reading friction."
+        },
+        {
+          "dimension": "concision",
+          "score": 80,
+          "finding": "Subagent dispatch boilerplate and script path parameters are repeated across multiple sections instead of being unified into concise operational rules."
+        },
+        {
+          "dimension": "environment_fit",
+          "score": 82,
+          "finding": "Omits session workflow hooks (/gh-start and /gh-done) and MCP next-devtools tool invocation mechanics confirmed by the operating context."
+        },
+        {
+          "dimension": "execution_readiness",
+          "score": 81,
+          "finding": "Potential stall point in Phase 3 regarding how table helpers in lib/mysql/db.mjs should handle updated column structures during auto-parameterized inserts."
+        }
+      ],
+      "verdict": "",
+      "key_changes": [
+        "Supplied exact mechanics and JSON schema for Phase 1 baseline audit script (.claude/temp/workspace/audit-sample-pdfs.mjs).",
+        "Defined explicit tokenization boundaries, parseConfidence formula, parseQuality thresholds, and parseWarnings enum array in Phase 2.",
+        "Specified exact table helper updates, SHA-256 duplicate handling, and transactional rollback test in Phase 3.",
+        "Explicitly detailed the 4 discrete parse rendering states in RefundResults.jsx (Clean Eligible, Clean Non-Eligible, Degraded / Flagged, Parse Failed) with exact neutral @theme token classes.",
+        "Formulated an enumerated 6-scenario integration verification matrix in verify-e2e-pipeline.mjs covering clean, unspaced, degraded, non-eligible, corrupt, and duplicate uploads against port 3014.",
+        "Restructured Phase 5 Subagent Review Gate into 4 parallel batch-dispatched lanes (Security, Efficacy, Completeness, UX) on model: opus with mandatory structured output schemas and zero-blocker pass criteria.",
+        "Set strict read/write file access boundaries for lead agent vs. test-engineer and mysql-specialist subagents."
+      ],
+      "open_risks": [
+        "Some CBP Form 7501 sample PDFs in .claude/temp/example-entry-summaries/ may have unique OCR artifact corruptions or non-standard decimal formats requiring iterative regex tuning during Phase 2 benchmarking.",
+        "The dev server on port 3014 must remain active and accessible throughout test-engineer verification script executions."
+      ],
+      "latency_ms": 30467,
+      "usage": {
+        "inputTokens": 9792,
+        "outputTokens": 10881,
+        "thinkingTokens": 4760
+      }
+    },
+    {
+      "label": "review 3",
+      "judged_by": "independent final audit",
+      "file": "rounds/04_review_3.txt",
+      "chars": 14504,
+      "score": 98,
+      "lint": [],
+      "uncovered": [],
+      "dimensions": [
+        {
+          "dimension": "coverage",
+          "score": 98,
+          "finding": "All 12 explicit and implied requirements are comprehensively captured with concrete operational constraints and acceptance criteria."
+        },
+        {
+          "dimension": "fidelity",
+          "score": 98,
+          "finding": "Faithfully captures every nuance of the user request (fused regex parsing, parse telemetry, status enum semantics, neutral UI warnings, subagent delegation, no-build rules) without deviation."
+        },
+        {
+          "dimension": "durability",
+          "score": 97,
+          "finding": "Instructions are resilient against ambiguity, specifying exact mathematical weighting for parse confidence telemetry and explicit fallback paths for subagent model naming."
+        },
+        {
+          "dimension": "mechanism",
+          "score": 98,
+          "finding": "Mechanisms are grounded in repository facts: exact file paths, MCP devtools tools, getDB() transaction semantics, sample PDF directories, and migration script locations are explicitly named."
+        },
+        {
+          "dimension": "delegation",
+          "score": 97,
+          "finding": "Subagent roles (mysql-specialist, test-engineer, code-reviewer, security-reviewer, frontend-designer) are properly bounded on model: opus with inlined rules and clear write-isolation rules."
+        },
+        {
+          "dimension": "verification",
+          "score": 98,
+          "finding": "Features strong phased gating: baseline failure recording, parser zero-regression gate, database transaction rollback test, 4-state UI inspection, and a 6-scenario E2E test suite."
+        },
+        {
+          "dimension": "checkability",
+          "score": 98,
+          "finding": "Definition of Done and Final Report Deliverables contain crisp, boolean-verifiable criteria across all touched subsystems."
+        },
+        {
+          "dimension": "failure_modes",
+          "score": 97,
+          "finding": "Directly neutralizes premature DB modification, non-transactional partial writes, false $0 UI states, palette color leakage, build script execution, and nonexistent importer_name schema assumptions."
+        },
+        {
+          "dimension": "invented_scope",
+          "score": 98,
+          "finding": "Telemetry metrics, status enums, and degraded UI states are natural, necessary operationalizations of requested features without introducing unrequested external dependencies or scope creep."
+        },
+        {
+          "dimension": "structure",
+          "score": 98,
+          "finding": "Organized into sequential, dependency-ordered phases with explicit intermediate verification gates and clean separation of concerns."
+        },
+        {
+          "dimension": "concision",
+          "score": 96,
+          "finding": "Dense, high-signal instructions that state precise rules and schemas without conversational filler."
+        },
+        {
+          "dimension": "environment_fit",
+          "score": 98,
+          "finding": "Completely aligned with the environment rules: React 19 / Next.js 16 Pages router, Tailwind 4 @theme tokens, Windows dev server on port 3014, /gh-start workflow, and temporary workspace conventions."
+        },
+        {
+          "dimension": "execution_readiness",
+          "score": 98,
+          "finding": "Fully ready for autonomous execution without requiring any human clarification or missing context."
+        }
+      ],
+      "verdict": "Hand off immediately: the work order provides complete, phased, robustly gated, and repo-accurate instructions for autonomous execution.",
+      "key_changes": [
+        "Integrated operating context session workflow hooks (/gh-start at start, /gh-done at conclusion).",
+        "Streamlined Standing Instructions and phase descriptions to eliminate duplicated transactional and styling rules.",
+        "Specified MCP next-devtools tool invocation mechanics (mcp__next-devtools__nextjs_index, nextjs_call) for dev server route and component inspection.",
+        "Clarified table helper synchronization in lib/mysql/db.mjs following column additions to entry_summaries.",
+        "Standardized subagent dispatch formatting and error reporting protocols."
+      ],
+      "open_risks": [
+        "Some highly malformed or scanned non-text 7501 PDFs may produce empty strings in pdf-parse; these must correctly fall into parseQuality 'failed' rather than causing unhandled runtime exceptions."
+      ],
+      "latency_ms": 19772,
+      "usage": {
+        "inputTokens": 10845,
+        "outputTokens": 7348,
+        "thinkingTokens": 1728
+      }
+    }
+  ],
+  "progression": [
+    {
+      "label": "draft",
+      "score": 86,
+      "delta": null,
+      "chars": 12329,
+      "lint": 0,
+      "uncovered": [
+        "R8"
+      ]
+    },
+    {
+      "label": "review 1",
+      "score": 84,
+      "delta": -2,
+      "chars": 12696,
+      "lint": 0,
+      "uncovered": []
+    },
+    {
+      "label": "review 2",
+      "score": 89,
+      "delta": 5,
+      "chars": 16497,
+      "lint": 0,
+      "uncovered": []
+    },
+    {
+      "label": "review 3",
+      "score": 98,
+      "delta": 9,
+      "chars": 14504,
+      "lint": 0,
+      "uncovered": []
+    }
+  ],
+  "passes": [
+    {
+      "label": "analysis",
+      "latency_ms": 20270,
+      "usage": {
+        "inputTokens": 3132,
+        "outputTokens": 7321,
+        "thinkingTokens": 4826
+      }
+    },
+    {
+      "label": "draft",
+      "latency_ms": 28664,
+      "usage": {
+        "inputTokens": 6003,
+        "outputTokens": 9372,
+        "thinkingTokens": 5557
+      }
+    },
+    {
+      "label": "review · coverage & fidelity",
+      "latency_ms": 19335,
+      "usage": {
+        "inputTokens": 9662,
+        "outputTokens": 9191,
+        "thinkingTokens": 4274
+      }
+    },
+    {
+      "label": "review · mechanism & verification",
+      "latency_ms": 30467,
+      "usage": {
+        "inputTokens": 9792,
+        "outputTokens": 10881,
+        "thinkingTokens": 4760
+      }
+    },
+    {
+      "label": "review · adversarial execution simulation",
+      "latency_ms": 19772,
+      "usage": {
+        "inputTokens": 10845,
+        "outputTokens": 7348,
+        "thinkingTokens": 1728
+      }
+    },
+    {
+      "label": "final audit",
+      "latency_ms": 9929,
+      "usage": {
+        "inputTokens": 8800,
+        "outputTokens": 3681,
+        "thinkingTokens": 2024
+      }
+    },
+    {
+      "label": "learning",
+      "latency_ms": 8916,
+      "usage": {
+        "inputTokens": 1765,
+        "outputTokens": 3501,
+        "thinkingTokens": 2607
+      }
+    }
+  ],
+  "lessons_learned": [
+    "Explicitly dispatch author-requested specialist subagents in every phase where their domain tasks occur rather than assigning those tasks to the lead agent.",
+    "Define explicit subagent dispatch blocks specifying self-contained context excerpts, strict read-write file path boundaries, and standardized report artifact schemas.",
+    "Constrain testing subagents to write throwaway verification scripts strictly within designated temporary scratchpad directories rather than touching production files.",
+    "Enumerate explicit verification test matrices containing distinct failure modes, exact CLI invocation commands, expected return codes, and concrete state assertions.",
+    "Specify exact calculation formulas, tokenization algorithms, and intermediate artifact data schemas instead of leaving complex parsing or scoring heuristics to agent interpretation.",
+    "Prioritize author-mandated subagent roles and requirements over unrequested auxiliary review gates or invented scope.",
+    "Provide concrete test harness scaffolding and CLI command templates directly in the prompt to prevent executing agents from inventing verification code.",
+    "Centralize global technical constraints and prohibitions in governing rules rather than repeating identical boilerplate across individual execution phases.",
+    "State durable capability tier resolution and fallback instructions consistently within every phase dispatch block that spawns subagents.",
+    "Integrate confirmed environment workflow hooks and specialized tool invocations explicitly into the appropriate execution phase steps."
+  ],
+  "checkpoints": [
+    {
+      "seq": 1,
+      "phase": "opened",
+      "at": "2026-08-20T15:01:33.688Z",
+      "elapsed_ms": 0,
+      "readme": "generated",
+      "context": "bootstrapped"
+    },
+    {
+      "seq": 2,
+      "phase": "analysis",
+      "at": "2026-08-20T15:01:53.961Z",
+      "elapsed_ms": 20273,
+      "requirements": 12,
+      "slug": "fix_cbp_7501_pdf_parsing_pipeline"
+    },
+    {
+      "seq": 3,
+      "phase": "draft",
+      "at": "2026-08-20T15:02:22.627Z",
+      "elapsed_ms": 48939,
+      "chars": 12329
+    },
+    {
+      "seq": 4,
+      "phase": "review_1",
+      "at": "2026-08-20T15:02:41.964Z",
+      "elapsed_ms": 68276,
+      "focus": "coverage & fidelity",
+      "judged": "draft",
+      "score": 86,
+      "uncovered": 1,
+      "produced_chars": 12696
+    },
+    {
+      "seq": 5,
+      "phase": "review_2",
+      "at": "2026-08-20T15:03:12.433Z",
+      "elapsed_ms": 98745,
+      "focus": "mechanism & verification",
+      "judged": "review 1",
+      "score": 84,
+      "uncovered": 0,
+      "produced_chars": 16497
+    },
+    {
+      "seq": 6,
+      "phase": "review_3",
+      "at": "2026-08-20T15:03:32.207Z",
+      "elapsed_ms": 118519,
+      "focus": "adversarial execution simulation",
+      "judged": "review 2",
+      "score": 89,
+      "uncovered": 0,
+      "produced_chars": 14504
+    },
+    {
+      "seq": 7,
+      "phase": "final_audit",
+      "at": "2026-08-20T15:03:42.136Z",
+      "elapsed_ms": 128448,
+      "judged": "review 3",
+      "score": 98,
+      "uncovered": 0
+    },
+    {
+      "seq": 8,
+      "phase": "selection",
+      "at": "2026-08-20T15:03:42.136Z",
+      "elapsed_ms": 128448,
+      "shipped": "review 3",
+      "score": 98
+    },
+    {
+      "seq": 9,
+      "phase": "lessons",
+      "at": "2026-08-20T15:03:51.055Z",
+      "elapsed_ms": 137367,
+      "stored": 10
+    },
+    {
+      "seq": 10,
+      "phase": "complete",
+      "at": "2026-08-20T15:03:51.056Z",
+      "elapsed_ms": 137368,
+      "score": 98,
+      "shipped": "review 3"
+    }
+  ],
+  "final": {
+    "shipped": "review 3",
+    "score": 98,
+    "band": "excellent",
+    "chars": 14504,
+    "gain_from_draft": 12,
+    "uncovered": [],
+    "lint": [],
+    "verdict": "Hand off immediately: the work order provides complete, phased, robustly gated, and repo-accurate instructions for autonomous execution.",
+    "remaining_fixes": [],
+    "prompt_file": "improved_prompt_fix_cbp_7501_pdf_parsing_pipeline.txt"
+  },
+  "totals": {
+    "model_calls": 7,
+    "usage": {
+      "inputTokens": 141425,
+      "outputTokens": 77085
+    },
+    "cost_usd": 0.3951,
+    "elapsed_ms": 137353
+  },
+  "finished_at": "2026-08-20T15:03:51.056Z"
+}

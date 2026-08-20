@@ -1,0 +1,113 @@
+Harden the CBP Form 7501 PDF parsing and ingestion pipeline across pages/api/upload.js, lib/pdf/parse-entry-summary.mjs, and lib/mysql/db.mjs to accurately extract concatenated IEEPA tariff lines (^9903\.01\.\d{2}$) and duty amounts, persist parse confidence and meaningful status metrics in MySQL, and surface clear degraded-parse alerts in components/RefundResults.jsx using neutral @theme tokens.
+
+### Governing Rules
+- Never run npm run build during iteration; test exclusively against the local development server running on http://localhost:3014 or via throwaway workspace scripts.
+- Never use external UI component libraries (e.g. shadcn/ui); hand-roll all React 19 components styled strictly with Tailwind 4 @theme tokens from styles/globals.css.
+- Never use hardcoded palette colors (e.g. text-blue-600, bg-green-500, text-red-500); use semantic tokens (text-destructive, text-success, bg-background, border-border, text-foreground, text-muted-foreground).
+- Place all test, verification, and migration scripts in .claude/temp/workspace/ or .claude/temp/workspace/migrations/; never create files in test/ or scripts/.
+- Do not modify .env, credentials, next.config.mjs, package.json launchers, or .claude/settings*.json without explicit user confirmation.
+- React hook dependencies must strictly terminate with }, [deps]); syntax and never };, [deps]);.
+- All numbers in the UI must use tabular-nums, and headings/metrics must use font-semibold rather than font-bold.
+- Subagent routing: Proactively delegate database work to mysql-specialist and testing/verification audits to test-engineer or code-reviewer. Configure each subagent with model: opus. If that exact designation is no longer current at execution time, use the highest-capability model in that same tier available, and state the substitution in the final report. Subagents do not inherit path-triggered rules; inline relevant rule excerpts into their prompt briefs.
+
+---
+
+### Phase 1: End-to-End Upload Flow Audit & Baseline Benchmark
+1. Inspect the full ingestion lifecycle:
+   - pages/api/upload.js: Verify export const config = { api: { bodyParser: false } }, Formidable multipart parsing, the 10 MB file size limit, and SHA-256 duplicate calculation.
+   - lib/pdf/parse-entry-summary.mjs: Trace how pdf-parse text extraction feeds regular expressions, where unspaced column concatenation causes missed HTS lines (^9903\.01\.\d{2}$), and how isEligible and duty refund sums are calculated.
+   - lib/mysql/db.mjs: Inspect table helpers (getEntrySummariesTable(), getTariffLineItemsTable(), getSiteStatsTable()) and how rows are inserted.
+2. Create a throwaway benchmark script at .claude/temp/workspace/benchmark-parser.mjs using async arrow functions, thin runTest() wrappers, and chalk to run parseEntrySummary against sample PDFs in .claude/temp/example-entry-summaries/.
+3. Catalog every failure mode discovered across the sample set:
+   - Concatenated HTS numbers (e.g. 99030101, 9903.01.011000.00, or duty rates merged directly into HTS codes).
+   - Line items skipped due to strict whitespace expectations in column parsing.
+   - Miscalculated duty amounts or entered values caused by mashed decimal strings.
+   - Eligible 9903.01.xx entries incorrectly returning isEligible: false and totalRefundAmount: 0.
+4. GATE: Document the benchmark failure baseline. Do not modify any database schema or table helper code until Phase 2 is verified on real PDFs.
+
+---
+
+### Phase 2: PDF Parser Robustness & Parse Quality Telemetry
+1. Refactor lib/pdf/parse-entry-summary.mjs to handle unspaced and concatenated text:
+   - Implement resilient tokenization and regex patterns capable of isolating IEEPA HTS codes (^9903\.01\.\d{2}$) even when fused with adjacent line numbers, descriptions, or rates.
+   - Ensure line items accurately parse entry line numbers, HTS numbers, entered values, duty rates, and duty paid amounts.
+   - Set isEligible: true whenever one or more valid 9903.01.xx line items with duty paid are identified.
+   - Accurately calculate totalRefundAmount as the precise sum of duty paid on qualifying 9903.01.xx line items.
+2. Add parse quality and confidence telemetry to the object returned by parseEntrySummary(buffer):
+   - parseConfidence: A number between 0.00 and 1.00 calculated from header presence, line item checksum reconciliation (sum of parsed line item duties vs grand total duty on Form 7501 Block 39), and unparseable line block count.
+   - parseQuality: String enum: 'high' (clean parse, totals reconcile), 'medium' (IEEPA lines found, minor reconciliation drift), 'low' (significant unspaced/unmatched blocks, partial data), or 'failed' (unparseable 7501 structure).
+   - parseWarnings: An array of machine-readable string codes (e.g. ['DUTY_TOTAL_MISMATCH', 'CONCATENATED_TOKENS_RECOVERED', 'UNRECOGNIZED_LINE_FORMAT']).
+3. Re-run .claude/temp/workspace/benchmark-parser.mjs against all sample PDFs in .claude/temp/example-entry-summaries/.
+4. GATE: Demonstrate zero false negatives (no eligible 9903.01.xx PDF marked isEligible: false) and verified refund calculations across the sample dataset.
+
+---
+
+### Phase 3: Database Schema Migration & Atomic Ingestion Pipeline
+1. Dispatch a mysql-specialist subagent on model: opus with inlined rules for Skar Server One data access.
+2. Discover live schema before authoring migrations by querying INFORMATION_SCHEMA.COLUMNS where TABLE_SCHEMA = 'tariff_refund_helper_site'. Verify existing columns on entry_summaries, tariff_line_items, and site_stats (note: importer_name does not exist).
+3. Author a JavaScript migration script at .claude/temp/workspace/migrations/add-parse-telemetry-and-status.mjs:
+   - Add parse_confidence DECIMAL(3,2) NULL, parse_quality ENUM('high', 'medium', 'low', 'failed') NOT NULL DEFAULT 'high', and parse_warnings JSON NULL to entry_summaries.
+   - Alter the status column on entry_summaries to support distinct operational values: ENUM('processed', 'flagged_for_review', 'partial_parse', 'parse_failed', 'duplicate') NOT NULL DEFAULT 'processed'.
+   - Execute the migration script and verify updated schema with INFORMATION_SCHEMA.COLUMNS.
+4. Update pages/api/upload.js to make writes atomic and record telemetry:
+   - Import getDB from lib/mysql/db.mjs and execute multi-table database operations inside getDB().transaction(async (connection) => { ... }).
+   - Insert the entry summary record with parsed parse_confidence, parse_quality, parse_warnings (JSON stringified), and the appropriate status:
+     - status = 'processed' if parseQuality is 'high' or 'medium'.
+     - status = 'flagged_for_review' or 'partial_parse' if parseQuality is 'low'.
+     - status = 'parse_failed' if parser threw an error or returned unparseable structure.
+   - Insert all extracted tariff_line_items records within the same transaction.
+   - Atomically increment site_stats counters only when status is 'processed' or 'flagged_for_review' and entry is non-duplicate.
+   - Ensure any failure rolls back the entire transaction and returns an appropriate HTTP error (400 for bad files, 422 for unparseable PDFs, 500 for unhandled exceptions).
+5. GATE: Execute a throwaway script at .claude/temp/workspace/test-db-transaction.mjs verifying rollback on simulated insert failure and correct field persistence on success.
+
+---
+
+### Phase 4: Frontend Degraded State UI in RefundResults.jsx
+1. Inspect components/RefundResults.jsx and the primary upload results container in pages/index.jsx.
+2. Refactor components/RefundResults.jsx (export const RefundResults = () => {}) to handle all parse states cleanly:
+   - If parseQuality is 'high' or 'medium' and isEligible is true: render the standard refund calculation summary with tabular-nums and font-semibold.
+   - If parseQuality is 'low' or status is 'flagged_for_review' / 'partial_parse': render a prominent degraded-state notification card explaining that CBP Form 7501 text was partially unreadable or columns were merged. Display any recovered IEEPA lines with an explicit "Manual Review Recommended" badge, without presenting an unqualified final refund total.
+   - If parseQuality is 'failed' or status is 'parse_failed': render a clear parsing error alert stating that no valid Form 7501 line items could be extracted. Never render a false "$0.00 Refund Available" message that implies the importer has zero eligibility.
+3. Enforce Tailwind 4 @theme neutral token styling:
+   - Use neutral black/white/gray surfaces and borders (bg-card, border-border, text-foreground, text-muted-foreground).
+   - For degraded/error states, use semantic tokens (text-destructive, bg-destructive/10, border-destructive/20) and neutral warning badges.
+   - Absolutely no blue or green Tailwind palette classes (no text-blue-600, bg-green-500, etc.).
+   - Ensure all React hook dependencies use }, [deps]); syntax.
+4. GATE: Inspect route rendering on dev server port 3014 using MCP nextjs_call / nextjs_index to verify degraded, failed, and successful result renders.
+
+---
+
+### Phase 5: Verification, Integration Testing & Subagent Review Gate
+1. Create a comprehensive verification suite at .claude/temp/workspace/verify-e2e-pipeline.mjs:
+   - Upload 5+ representative CBP Form 7501 PDFs from .claude/temp/example-entry-summaries/ (including unspaced/concatenated samples, clean samples, and non-eligible samples).
+   - Assert that HTTP responses return correct parse_quality, parse_confidence, and isEligible flags.
+   - Query database directly to assert entry_summaries and tariff_line_items rows contain matching data, non-static status values, and valid JSON parse_warnings.
+   - Verify site_stats counter reflects only valid processed entries.
+2. Run Subagent Review Gate:
+   - Dispatch code-reviewer on model: opus to audit parsing logic, transaction boundaries in upload.js, and tabular-nums / @theme token adherence in RefundResults.jsx.
+   - Dispatch security-reviewer on model: opus to audit formidable file limits, SHA-256 deduplication, parameterized query safety, and absence of sensitive logging.
+   - Require zero blockers with failure traces (input -> file:line -> incorrect outcome) across all review lanes against the exact same git commit.
+3. Session Cleanup:
+   - Remove scratchpad verification scripts from .claude/temp/workspace/ (preserving migrations in .claude/temp/workspace/migrations/).
+   - Run rm -f tmpclaude-*-cwd nul.
+
+---
+
+### Definition of Done
+- [ ] lib/pdf/parse-entry-summary.mjs correctly extracts IEEPA codes (^9903\.01\.\d{2}$) and duty amounts from unspaced/concatenated 7501 text with zero false-negative isEligible results on sample PDFs.
+- [ ] parseEntrySummary returns parseConfidence (0.00-1.00), parseQuality ('high'|'medium'|'low'|'failed'), and parseWarnings array.
+- [ ] entry_summaries schema includes parse_confidence, parse_quality, parse_warnings, and an updated status enum ('processed', 'flagged_for_review', 'partial_parse', 'parse_failed', 'duplicate').
+- [ ] pages/api/upload.js wraps all multi-table database operations in getDB().transaction(cb) and persists parse telemetry.
+- [ ] components/RefundResults.jsx displays neutral @theme degraded alerts on low confidence / failed parses and never renders a false $0.00 refund.
+- [ ] All UI styling strictly complies with Tailwind 4 @theme tokens (no blue/green palette classes, tabular-nums on numbers, font-semibold on headings).
+- [ ] All verification scripts executed under .claude/temp/workspace/ against dev server on port 3014 with zero errors and no npm run build invocations.
+- [ ] Code-reviewer and security-reviewer subagents confirm zero blockers.
+
+### Final Report Format
+Return a structured completion report with:
+1. Root Cause Summary: Exact regex and tokenization failure mechanisms identified in unspaced 7501 text.
+2. Parser Accuracy Metrics: Before vs. after IEEPA line extraction rates and refund totals across .claude/temp/example-entry-summaries/.
+3. Database Changes: Migration script path in .claude/temp/workspace/migrations/ and verified schema columns.
+4. UI States Implemented: Description and token classes used for clean, degraded, and failed parse states in RefundResults.jsx.
+5. Verification Logs: Console test execution outputs from .claude/temp/workspace/ verification runs on port 3014.
+6. Subagent Review Gate Results: Sign-off status from code-reviewer and security-reviewer.

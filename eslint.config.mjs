@@ -9,6 +9,10 @@ const compat = new FlatCompat({
    baseDirectory: __dirname
 });
 
-const eslintConfig = [...compat.extends('next/core-web-vitals')];
+const eslintConfig = [
+   // Vendored, dependency-free prompt-improver tool — not repo source, and it makes paid Gemini calls.
+   {ignores: ['test/0-ai/**']},
+   ...compat.extends('next/core-web-vitals')
+];
 
 export default eslintConfig;

@@ -1,0 +1,113 @@
+Harden the CBP Form 7501 PDF parsing and database ingestion pipeline across pages/api/upload.js, lib/pdf/parse-entry-summary.mjs, and lib/mysql/db.mjs to accurately extract concatenated IEEPA tariff lines (^9903\.01\.\d{2}$) and duty amounts, persist parse confidence and meaningful status metrics in MySQL, and surface degraded-parse alerts in components/RefundResults.jsx using neutral @theme tokens.
+
+### Standing Instructions & Operational Boundaries
+- Session Workflow: Open a tracking issue using /gh-start at initialization and close with a structured summary via /gh-done upon completion.
+- Server & Build: Never run `npm run build` during iteration. Inspect and test exclusively against the local dev server on http://localhost:3014 using MCP next-devtools (`mcp__next-devtools__nextjs_index`, `nextjs_call`) or workspace test scripts.
+- UI & Styling: Hand-roll all React 19 components using `export const ComponentName = () => {}` syntax. Style strictly with Tailwind 4 `@theme` design tokens from `styles/globals.css` (e.g. `bg-card`, `border-border`, `text-foreground`, `text-muted-foreground`, `text-destructive`, `text-success`). Never use external UI libraries (e.g. shadcn/ui) or hardcoded palette colors (`text-blue-600`, `bg-green-500`, `text-red-500`).
+- Formatting Standards: Apply `tabular-nums` to all rendered numbers and `font-semibold` (never `font-bold`) to metrics/headings. React hook dependencies must end with `}, [deps]);`.
+- Database Access: Call `getDB()` synchronously without arguments from `lib/mysql/db.mjs`. Use auto-parameterized table helpers or `getDB().query(sql, params)` for aggregates. Never use string interpolation. Multi-table writes must run inside `getDB().transaction(async (conn) => { ... })`.
+- File Placement: Place all test, verification, and migration scripts exclusively in `.claude/temp/workspace/` or `.claude/temp/workspace/migrations/`. Never write to `test/` or `scripts/`.
+- Subagent Routing: Delegate database tasks to `mysql-specialist`, verification scripts to `test-engineer`, and review gates to `code-reviewer`, `security-reviewer`, and `frontend-designer`. Configure all subagents with `model: opus`. If that exact designation is not current at runtime, select the highest-tier frontier model available and record the substitution in the final report. Subagents run in a fresh context; inline required path-triggered rule excerpts into their dispatch prompts.
+- Concurrency & Write Isolation: Subagents write only to `.claude/temp/workspace/`. Only the lead agent modifies shared integration files: `pages/api/upload.js`, `lib/pdf/parse-entry-summary.mjs`, `lib/mysql/db.mjs`, and `components/RefundResults.jsx`.
+
+---
+
+### Phase 1: Upload Flow Audit & Parser Failure Baseline
+1. Inspect the ingestion path: `pages/api/upload.js` (`bodyParser: false`, formidable multipart handling, 10 MB limit, SHA-256 deduplication), `lib/pdf/parse-entry-summary.mjs` (pdf-parse text parsing, IEEPA regex matching, duty calculations), and `lib/mysql/db.mjs` (table helpers).
+2. Dispatch `test-engineer` on `model: opus` to author and execute `.claude/temp/workspace/audit-sample-pdfs.mjs` against sample CBP Form 7501 files in `.claude/temp/example-entry-summaries/`:
+   - Use async arrow functions, thin `runTest()` wrappers, and `chalk`.
+   - Enumerate all files, comparing raw presence of `9903.01` tokens against current `isEligible` extraction output.
+   - Catalog unspaced column concatenation failure patterns (e.g. line numbers fused with HTS like `0019903.01.01`, HTS fused with rates like `9903.01.0125.0%`, entered value mashed with duty amounts like `10500.002625.00`).
+3. Save baseline findings to `.claude/temp/workspace/baseline-parser-audit.json`.
+4. **GATE 1**: Document baseline failure count and confirmed concatenation regex failure modes before proceeding. Do not modify database files or schema until Phase 2 passes.
+
+---
+
+### Phase 2: PDF Parser Robustness & Telemetry Implementation
+1. Refactor `lib/pdf/parse-entry-summary.mjs`:
+   - Implement tokenization logic capable of separating Form 7501 column blocks (Box 27 Line No, Box 28 HTS No, Box 29 Rate, Box 30 Entered Value, Box 32 Duty Amount) when whitespace delimiters are missing from `pdf-parse` text streams.
+   - Refine HTS pattern matching to isolate `^9903\.01\.\d{2}$` (and 8-digit variants `990301xx`) from surrounding alphanumeric tokens.
+   - Extract per-line details: `entryLineNumber`, `htsNumber`, `dutyRate`, `enteredValue`, and `dutyAmount`.
+   - Set `isEligible: true` if and only if at least one valid `9903.01.xx` line item with a non-zero duty refund is identified.
+   - Calculate `totalRefundAmount` as the exact arithmetic sum of duty amounts paid on eligible line items.
+2. Implement parse telemetry on the returned result object:
+   - `parseConfidence`: Float between `0.00` and `1.00`, calculated as `(0.25 * header_valid) + (0.45 * line_checksum_match) + (0.30 * block_match_ratio)`, where checksum reconciliation compares summed line duties against Box 39 / grand total if present.
+   - `parseQuality`: String enum:
+     - `'high'`: `parseConfidence >= 0.85` with all identified line items cleanly parsed.
+     - `'medium'`: `parseConfidence` between `0.60` and `0.84` with IEEPA lines extracted.
+     - `'low'`: `parseConfidence` between `0.20` and `0.59`, severe column concatenation or line checksum mismatch.
+     - `'failed'`: `parseConfidence < 0.20` or unreadable document structure.
+   - `parseWarnings`: Array of error/warning string codes (e.g. `'DUTY_TOTAL_MISMATCH'`, `'CONCATENATED_TOKENS_RECOVERED'`, `'MISSING_BOX_39_TOTAL'`).
+3. Dispatch `test-engineer` to author and execute `.claude/temp/workspace/benchmark-parser.mjs` against `.claude/temp/example-entry-summaries/`.
+4. **GATE 2**: Benchmark must demonstrate zero false negatives (100% of samples with `9903.01.xx` in raw text parsed as `isEligible: true`) and exact refund arithmetic against `baseline-parser-audit.json` before moving to Phase 3.
+
+---
+
+### Phase 3: Database Schema Migration & Atomic Ingestion
+1. Dispatch `mysql-specialist` on `model: opus` with inlined Skar Server One database rules to execute discovery and author migration:
+   - Query `INFORMATION_SCHEMA.COLUMNS` where `TABLE_SCHEMA = 'tariff_refund_helper_site'` to verify existing definitions of `entry_summaries`, `tariff_line_items`, and `site_stats`. Confirm `importer_name` does not exist.
+   - Author migration script `.claude/temp/workspace/migrations/add-parse-telemetry-and-status.mjs`:
+     - Add `parse_confidence DECIMAL(3,2) NULL`, `parse_quality ENUM('high', 'medium', 'low', 'failed') NOT NULL DEFAULT 'high'`, and `parse_warnings JSON NULL` to `entry_summaries`.
+     - Modify `status` column on `entry_summaries` to `ENUM('processed', 'flagged_for_review', 'partial_parse', 'parse_failed', 'duplicate') NOT NULL DEFAULT 'processed'`.
+   - Run migration via `node .claude/temp/workspace/migrations/add-parse-telemetry-and-status.mjs` and confirm schema changes with `INFORMATION_SCHEMA.COLUMNS`.
+   - Update table helper definitions in `lib/mysql/db.mjs` if necessary to support the new columns.
+2. Update `pages/api/upload.js` for atomic multi-table ingestion:
+   - Execute multi-table operations within `getDB().transaction(async (conn) => { ... })`.
+   - Duplicate Check: If SHA-256 `entry_hash` exists, set `status = 'duplicate'`, commit transaction, and return 200 with `{ duplicate: true }` without incrementing `site_stats` or duplicating line items.
+   - Status Evaluation: Set `status` to `'processed'` for `high`/`medium` quality, `'flagged_for_review'` or `'partial_parse'` for `low` quality, and `'parse_failed'` for `failed` quality.
+   - Ingestion: Insert `entry_summaries` row (with `parse_confidence`, `parse_quality`, stringified `parse_warnings`, and `status`), bulk insert `tariff_line_items`, and increment `site_stats` counters atomically only when `status` is `'processed'` or `'flagged_for_review'` and `isEligible: true`.
+   - Error Handling: Roll back transaction on error; return 400 for bad input, 422 for unparseable PDF, and 500 for unhandled exceptions.
+3. Dispatch `test-engineer` to execute `.claude/temp/workspace/test-db-transaction.mjs` verifying clean insert, duplicate handling, and automatic rollback on simulated failure.
+4. **GATE 3**: Verify schema columns and proven transaction rollback behavior before starting frontend updates.
+
+---
+
+### Phase 4: Frontend Degraded State UI in RefundResults.jsx
+1. Refactor `components/RefundResults.jsx` (`export const RefundResults = ({ results, ...props }) => {}`) to support 4 discrete parse states:
+   - State A (Clean Eligible - `parseQuality` in `'high'/'medium'`, `isEligible: true`): Render eligible status banner, total estimated refund with `tabular-nums font-semibold`, and full line item breakdown table (Line No, HTS Code, Duty Rate, Entered Value, Duty Refund).
+   - State B (Clean Non-Eligible - `parseQuality` in `'high'/'medium'`, `isEligible: false`): Render neutral card stating 'No IEEPA § 9903.01 tariff lines identified on this Form 7501'. Clearly display $0.00 refund with explanation that no matching lines were found, without error styling.
+   - State C (Degraded / Flagged - `parseQuality: 'low'` or `status` in `'flagged_for_review'/'partial_parse'`): Render prominent neutral warning card titled 'Parse Quality Degraded — Manual Review Recommended'. Display extracted partial line items, render parse warning tags in neutral pill badges, and suppress unqualified refund totals to prevent false expectations.
+   - State D (Parse Failed - `parseQuality: 'failed'` or `status: 'parse_failed'`): Render card styled with `text-destructive` and `border-destructive/20` stating the document could not be parsed as a valid Form 7501. Never display a misleading '$0.00 Refund'; provide clear guidance to re-upload a clean, unredacted PDF.
+2. Ensure all UI elements use neutral Tailwind 4 `@theme` classes from `styles/globals.css`, with zero blue or green palette classes.
+3. **GATE 4**: Inspect all 4 UI states on http://localhost:3014 using MCP next-devtools tools (`mcp__next-devtools__nextjs_index`, `nextjs_call`) or browser inspection.
+
+---
+
+### Phase 5: Verification Matrix, Subagent Review Gate & Cleanup
+1. End-to-End Test Matrix: Dispatch `test-engineer` to run `.claude/temp/workspace/verify-e2e-pipeline.mjs` against port 3014 covering 6 scenarios:
+   - Scenario 1: Clean Eligible PDF -> 200 OK, `isEligible: true`, `parse_quality: 'high'`, `status: 'processed'`, `site_stats` incremented.
+   - Scenario 2: Unspaced Concatenated PDF -> 200 OK, 100% of fused `9903.01.xx` line items extracted, exact duty sum matched, `parse_quality: 'high'|'medium'`.
+   - Scenario 3: Degraded PDF (Checksum Mismatch) -> 200 OK, `parse_quality: 'low'`, `status: 'flagged_for_review'`, warnings populated, UI suppresses definitive total.
+   - Scenario 4: Clean Non-Eligible PDF -> 200 OK, `isEligible: false`, refund 0.00, `parse_quality: 'high'`, `status: 'processed'`.
+   - Scenario 5: Non-7501 / Corrupted File -> 422 or 400 error, `status: 'parse_failed'`, 0 orphan line items in DB, transaction rolled back.
+   - Scenario 6: Duplicate File Upload -> 200 OK with duplicate payload, DB line items not duplicated, `site_stats` unchanged.
+2. Subagent Review Gate: Dispatch 4 parallel read-only review subagents in a single batch on `model: opus` (or frontier equivalent) against the final git commit snapshot:
+   - Lane 1 (`security-reviewer`): Audit formidable file limits, MIME checks, parameterization, and transaction boundaries.
+   - Lane 2 (`code-reviewer` - Efficacy): Audit regex boundaries, checksum math, telemetry formula precision, and transactional atomicity.
+   - Lane 3 (`code-reviewer` - Completeness): Audit compliance against requirements R1–R12, JSON warning serialization, and absence of `importer_name` references.
+   - Lane 4 (`frontend-designer` - UX): Audit `RefundResults.jsx` for neutral `@theme` tokens, zero palette colors, `tabular-nums`, `font-semibold`, `}, [deps]);` syntax, and proper rendering across all 4 parse states.
+   - Each subagent must return structured JSON: `{ lane: string, status: 'PASS' | 'BLOCKER', findings: Array<{ file: string, line: number, issue: string, failure_trace?: string }> }`.
+   - Gate Requirement: All 4 lanes must return `PASS` with 0 blockers.
+3. Session Cleanup:
+   - Remove workspace test scripts from `.claude/temp/workspace/*.mjs` (preserve `.claude/temp/workspace/migrations/`).
+   - Run `rm -f tmpclaude-*-cwd nul`.
+
+---
+
+### Definition of Done
+- [ ] 1. `lib/pdf/parse-entry-summary.mjs` accurately extracts `9903.01.xx` HTS lines, duty rates, entered values, and duty amounts from unspaced concatenated text with 0 false negatives across `.claude/temp/example-entry-summaries/`.
+- [ ] 2. `parseEntrySummary` returns `parseConfidence` (0.00–1.00), `parseQuality` ('high'|'medium'|'low'|'failed'), and `parseWarnings` (string array).
+- [ ] 3. Migration script `.claude/temp/workspace/migrations/add-parse-telemetry-and-status.mjs` successfully executed, adding `parse_confidence`, `parse_quality`, `parse_warnings`, and updated `status` ENUM to `entry_summaries`.
+- [ ] 4. `pages/api/upload.js` executes ingestion inside `getDB().transaction(cb)` with verified rollback on failure and atomic `site_stats` updates.
+- [ ] 5. `components/RefundResults.jsx` renders all 4 discrete states (Clean Eligible, Clean Non-Eligible, Degraded Manual Review, Parse Failed) using neutral Tailwind 4 `@theme` tokens, `tabular-nums`, and `font-semibold`.
+- [ ] 6. All 6 end-to-end verification scenarios pass against dev server port 3014 without running `npm run build`.
+- [ ] 7. 4-lane subagent review gate (Security, Efficacy, Completeness, UX) returns `PASS` with 0 blockers.
+- [ ] 8. Session opened with `/gh-start` and closed with `/gh-done`.
+
+### Final Report Deliverables
+1. Concatenation Root Cause & Regex Solution: Technical summary of column boundary resolution and regex patterns.
+2. Parser Accuracy Benchmark Table: Before vs. after parsing comparison across all sample PDFs in `.claude/temp/example-entry-summaries/`.
+3. Database Schema Verification: Migration script output and verified `INFORMATION_SCHEMA.COLUMNS` schema.
+4. UI States Summary: Markup and class verification for all 4 parse UI states.
+5. End-to-End Test Execution Logs: Full output from `.claude/temp/workspace/verify-e2e-pipeline.mjs` on port 3014.
+6. Subagent Review Gate Sign-off: Verification matrix for all 4 review lanes with recorded model tiers.
