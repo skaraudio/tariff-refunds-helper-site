@@ -1,0 +1,13 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    ".claude/rules/api-patterns.md",
+    ".claude/rules/code-standards.md",
+    ".claude/rules/database.md",
+    ".claude/rules/security-hardening.md",
+    ".claude/rules/subagent-review.md",
+    ".claude/rules/task-planning.md",
+    ".claude/rules/test-files.md",
+    ".claude/rules/workflow.md"
+  ]
+}
