@@ -97,8 +97,8 @@ The other lanes audit what *is* there. This one audits what **is not** — and w
 / "not triggered — no rendered-surface file in the diff"); an unrecorded decision is itself a blocker.
 
 The rubric, the score bar, the write-safety boundary against the shared production DB, the anti-gaming rules, the
-round cap, and the evidence cap — code-path-only for the autonomous loop, uncapped for a human-attended round with
-the already-connected `claude-in-chrome` browser — are all owned by **`.claude/skills/ux-score-gate/SKILL.md`**.
+round cap, and the evidence cap — code-only checks remain capped; observed checks depend on the active client's
+authorized browser capability — are all owned by **`.claude/skills/ux-score-gate/SKILL.md`**.
 Load it when this lane triggers. A miss after its cap is a **blocker**, reported with the scorecard and the §0
 escalation, never rounded up.
 

@@ -3,9 +3,8 @@ name: ux-score-gate
 description: >
    The scored UX/UI iteration loop that the commit gate's UX lane runs on this site's single page — grade a UI
    change across Functionality, Usability, Ease and Workflow, fix the weakest dimension, re-grade with a fresh
-   grader, and repeat until every dimension scores 90+. No browser-automation MCP is wired into this repo, so
-   every check is scored from the code path and the running dev server's API responses, capped at partial
-   credit; that cap is the point of this skill. Load whenever a diff changes something a person sees or
+   grader, and repeat until every dimension scores 90+. Check the active client's attached browser tools;
+   checks supported only by code paths remain capped at partial credit. Load whenever a diff changes something a person sees or
    operates (a component, `pages/index.jsx`, `styles/globals.css`), or on "grade this UI", "iterate on the
    upload flow until it's good".
 ---
@@ -25,20 +24,20 @@ the anti-gaming rules. **Does not own:** when the lane triggers or what a miss m
 
 ## 0. Before the first round — read this, it changes what "evidence" means here
 
-**No browser-automation MCP is registered in this repo.** `.mcp.json` configures only `next-devtools` (Next.js
-build/runtime diagnostics — not interactive page control). `.claude/skills/chrome-devtools/SKILL.md` describes
-a Chrome DevTools MCP workflow, but no such server is connected (`claude mcp list` shows no `chrome-devtools`
-entry, project or global). **`claude-in-chrome` is connected, at the account level** rather than in this repo's
-`.mcp.json` — but every action it takes requires `AskUserQuestion` first, and a spawned subagent does not have
-that tool. So the autonomous grader genuinely cannot click, screenshot, or measure a rendered page; a
-human-attended round, with `claude-in-chrome` already connected, can.
+**Check the active client's actual browser capability first.** `.mcp.json` registers only `next-devtools`,
+but Codex or Claude Code can also receive tools from another configuration scope. Discover the attached
+tools and schemas; in Codex, `codex.cmd mcp list` diagnoses registration but does not prove a browser call
+worked. Do not infer an autonomous-browser limitation or signed-in access from a previous client's inventory.
+If authorized Chrome DevTools tools are callable, read `.claude/skills/chrome-devtools/SKILL.md` before
+using them for readiness, screenshots and observed evidence. Give one agent ownership of the browser.
+If only an attended browser is available, follow its permission workflow; if no authorized browser is
+available, use code/API evidence and state that limitation. Do not claim an unattached tool is connected.
 
-**Consequence (BLOCKING):** per §1, a check scored from the code path alone caps at **0.5**. Every check below
-is, at best, code-path evidence — so no check in this repo can currently score a genuine 1, and a dimension
-built entirely from 0.5s tops out at 50. **State this in the scorecard rather than rounding up:** report the
-real fractional score, mark every check `NOT EXERCISED`, and let the lane report `BLOCKED — code-path ceiling
-(§0); escalate: ask the human to run an attended round with the connected Chrome browser` if that is the honest
-verdict. Do not award pass credit for a plausible read.
+**Consequence (BLOCKING):** per §1, a check scored from the code path alone caps at **0.5**; a dimension
+built entirely from 0.5s tops out at 50. Mark each unexercised check `NOT EXERCISED` and report
+`BLOCKED — code-path ceiling` when applicable. Observed browser evidence can support full credit only
+for the checks actually exercised. If more evidence is required, name the missing capability or attended
+step from this session's inventory. Do not award pass credit for a plausible read.
 
 **Verification route actually available here:**
 
@@ -49,6 +48,8 @@ verdict. Do not award pass credit for a plausible read.
    freely with `curl` or a throwaway Node script — these are safe to call as many times as needed.
 4. For the **one write route** (`POST /api/upload`), follow the write-safety boundary below.
 5. `mcp__next-devtools__nextjs_index` / `nextjs_call` for build or hydration errors if something looks broken.
+6. When authorized browser tools are attached, exercise read-only UI checks using the `chrome-devtools`
+   skill. Browser availability does not authorize upload writes or change the boundary below.
 
 **Name the task, from the request.** One sentence describing the operator's complete job on this surface — e.g.
 "drop a 7501 PDF and learn the refund verdict." Take it from the original request or issue; only when neither
@@ -63,8 +64,8 @@ happens."
 In order of preference:
 
 1. Read `pages/api/upload.js` and `lib/pdf/parse-entry-summary.mjs` and score the check from the code path —
-   capped at 0.5. This is the default for every interaction check below; there is no browser here to stub
-   `fetch` via an initScript, so that first-choice option from a browser-driven gate is not available.
+   capped at 0.5. This remains the default for write-path checks; attaching a browser does not authorize
+   speculative submissions or count a mocked response as an observed backend result.
 2. Only if a live round-trip is genuinely necessary to resolve a specific doubt: drive it from a throwaway
    script under `.claude/temp/workspace/` (`.claude/rules/test-files.md` conventions) using one sample PDF from
    `.claude/temp/example-entry-summaries/`, then **delete the row(s) it created** (`entry_summaries` by the
@@ -80,15 +81,14 @@ In order of preference:
 Score each check **pass (1) · partial (0.5) · fail (0)**. Dimension score = `sum ÷ scored-checks × 100`.
 
 - **A check scored from the code path alone caps at 0.5.** Reading the handler is evidence it should work,
-  never evidence that it does. List it under `NOT EXERCISED` with the reason (per §0, that is currently every
-  interaction check in this repo).
+  never evidence that it does. List it under `NOT EXERCISED` with the specific reason from this session.
 - **A check marked N/A leaves the denominator**, but needs a structural reason ("no destructive action exists
   on this surface") stated in the scorecard; the scorecard reports `scored X of N`.
 - **A gating check scored below 1 blocks the lane outright**, whatever the averages say. Gating checks are
   marked **[G]**.
-- There is only one viewport lane here (no browser to emulate a second), so unlike a browser-driven gate,
-  scores are **not** the lower-of-two-viewports — they are single-source code-path scores, which is a weaker
-  standard, not a stronger one. Say so plainly in the scorecard.
+- Scores remain per-check under this rubric, without a lower-of-two-viewports aggregate. Report the
+  viewports actually observed; when no browser is available, identify the score as code/API evidence.
+  A static responsive-class read does not establish an observed narrow-viewport render.
 
 ### Functionality
 
@@ -150,21 +150,19 @@ round**.
 1. **Grade.** A fresh `frontend-designer`, given the diff, the task sentence, this rubric, and
    `.claude/rules/code-standards.md` verbatim — none of which a subagent inherits. It does not edit code, and
    it is not told the previous round's score or which checks were failing.
-2. **Decide.** Every scored dimension ≥ 90 and no gating check below 1 → the lane **PASSES**. Given §0, expect
-   this to mean "BLOCKED, capped by NOT EXERCISED evidence" under the autonomous loop — record that verdict
-   honestly rather than inflating scores to close the gate, and escalate per §0: ask the human to run an
-   attended round with the connected Chrome browser for uncapped evidence.
+2. **Decide.** Every scored dimension ≥ 90 and no gating check below 1 → the lane **PASSES**. If unexercised
+   checks cap the result, record `BLOCKED` honestly and identify the evidence still needed per §0.
 3. **Fix.** Lowest-scoring dimension first, only its failed checks. No opportunistic restyling.
-4. **Re-verify** the fixed checks against the code path (or a cleaned-up live round-trip per the write-safety
-   boundary), then re-grade.
+4. **Re-verify** the fixed checks using the available evidence path (authorized read-only browser checks,
+   code inspection, or a cleaned-up live round-trip per the write-safety boundary), then re-grade.
 
 **You — not the grader — hold the prior scorecards** and diff them. A check that flips pass → fail is a
 **regression: a blocker in its own right**, reported even if the round otherwise clears. It does not extend the
 cap.
 
 **Cap: three grade→fix rounds** (separate from the gate's own three). Still short → stop, report the scorecard,
-the failed/capped checks, and what each would take — usually: a human-attended round with the connected Chrome
-browser (§0), not "wire up" a browser MCP; one is already connected. Never round up.
+the failed/capped checks, and what each would take based on this session's actual capabilities (§0).
+Never round up or assume a particular browser is already connected.
 
 ---
 
@@ -174,10 +172,9 @@ browser (§0), not "wire up" a browser MCP; one is already connected. Never roun
 - **A dimension score with no per-check evidence is void** — that dimension is 0 until evidence exists.
 - **The check set may grow between rounds, never shrink.** A score that rises because a check disappeared is
   void.
-- **`NOT EXERCISED` is not a pass** — it caps at 0.5 (§1), and per §0 that is the ceiling for every interaction
-  check in this repo today.
+- **`NOT EXERCISED` is not a pass** — it caps at 0.5 (§1), even when other checks have browser evidence.
 - Never present a code-path read as if it were an observed result — say "traced" or "read", never "verified in
-  the browser," unless a human-attended round with the connected Chrome browser actually produced that result.
+  the browser," unless an authorized browser round actually produced that result.
 
 ---
 
@@ -194,7 +191,7 @@ Functionality   __   (scored __)
 Usability       __   (scored __)
 Ease            __   (scored __)
 Workflow        __   (scored __)
-                                        bar: every row >=90; no live-browser evidence exists (see §0)
+                                        bar: every row >=90; state actual browser/code/API evidence (§0)
 
 GATING:         [any [G] check below 1 — blocks regardless of scores]    — or "none"
 FAILED CHECKS:  [dimension · check · evidence · what it would take]      — or "none"
@@ -204,13 +201,6 @@ VERDICT:        [PASS | BLOCKED — lowest row __, round __ of 3]
 ```
 
 ---
-*Version: 1.1 (2026-08-20) — Fix round: the escalation path was stated as a permanent dead end ("until a
-browser tool/MCP exists"). `claude-in-chrome` is already connected at the account level; it is `AskUserQuestion`
-— unavailable to a spawned subagent — that keeps the autonomous loop code-path-only, not the absence of a
-browser. §0, §2 and §3 rewritten so the 0.5 cap stays correct for the autonomous loop while the live escalation
-is named: ask the human to run an attended round with the connected Chrome browser. Cap, arithmetic, and rubric
-unchanged.
-
-Version: 1.0 (2026-08-20) — New skill carrying the commit gate's UX lane for this repo: four unweighted
-dimensions gated at 90, gating checks, the shared-DB write-safety boundary, and a code-path evidence cap
-because no browser-automation MCP is wired in. History: `git log -- .claude/skills/ux-score-gate/SKILL.md`.*
+*Version: 1.2 (2026-09-04) — browser evidence depends on the active client's attached and authorized tools;
+code-only caps, scoring arithmetic and the shared-database write boundary remain unchanged.
+History: `git log -- .claude/skills/ux-score-gate/SKILL.md`.*
