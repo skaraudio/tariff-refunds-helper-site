@@ -7,6 +7,9 @@ Feb 20, 2026 Supreme Court ruling. Single landing page, one upload endpoint, MyS
 **Stack:** Next.js 16 (Pages Router) · React 19 · MySQL via `mysql2` · Tailwind CSS 4 (`@theme` tokens) ·
 `framer-motion` · `lucide-react` · `pdf-parse` · `formidable`. No UI component library.
 
+Read `.claude/rules/writing-style.md` before responding. It is the shared writing and prompt-handling policy for
+Kevin's requests.
+
 ## Quick Reference
 
 | Resource          | Location / value                                 |
