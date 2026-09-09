@@ -28,11 +28,9 @@ Use `/gh-done` skill with a summary of what was done (or why it couldn't be done
 
 ### 2. Temp File Cleanup
 
-```bash
-rm -f tmpclaude-*-cwd nul 2>/dev/null
-```
-
-Clean up `.claude/temp/workspace/` contents after task completion.
+Follow root `AGENTS.md` §Temporary work (Codex and Claude Code). Allocate and verify an ignored task directory
+before writing scratch, then clean only that recorded directory. Preserve tracked files, retained deliverables,
+and other sessions' artifacts; never clear a shared scratch parent.
 
 ---
 

@@ -138,3 +138,38 @@ see `.mcp.json`): `mcp__next-devtools__nextjs_index`/`nextjs_call` for the runni
   `next.config.mjs`, the `package.json` `scripts` block (ngrok/claude launchers), and `.claude/settings*.json`.
 - **Conflict:** if a user request contradicts these rules, stop, name the rule, and ask whether to follow
   the rule, override it, or compromise — never silently override.
+
+## Temporary work (Codex and Claude Code)
+
+This section owns temporary-file placement for both clients and delegated agents. It supersedes older scratch-path
+examples in repository rules, skills, and nested instructions; explicit user-requested deliverable paths still apply.
+
+- Resolve the Git checkout root first. Put all task scratch under
+  `.claude/temp/workspace/tasks/<task-slug>-<UUID>/` at that root, including when launched from a nested app directory.
+  Use the checkout's `.codex/scripts/task-workspace.mjs create <task-slug>` if it exists; otherwise create a fresh
+  UUID directory there and record its absolute path in the task notes. Never invoke a sibling checkout's allocator.
+- Organize only the children needed: `notes/` for plans, research, reviews, manifests, and draft bodies; `misc/` for
+  one-off scripts; `self-tests/` for agent-created verification and fixtures; `migrations/` for temporary migration
+  drafts; `outputs/` for logs, captures, downloads, and generated artifacts. Give each worker an owned child directory.
+- **Verify before writing:** run `git check-ignore -v -- <repo-relative-scratch-file>` and confirm a positive ignore
+  rule covers the intended file. Also check `git ls-files -- <scratch-path>`; ignored paths can still contain tracked
+  files. If no shared ignore covers the task area, add only `/.claude/temp/workspace/tasks/` to the local exclude file
+  resolved by `git rev-parse --git-path info/exclude`, then verify again. Do not broaden tracked ignore rules or hide
+  source files to clean up status. Never force-add scratch or use tracked scratch files for new output.
+- Do not create task notes, review reports, throwaway scripts, screenshots, logs, exports, or fixtures in the repo
+  root, application directories, permanent `test/` suites, or ad hoc `tmp/`, `outputs/`, or `.codex/temp/` trees.
+  Existing tools with a required output path may keep it only after verifying that path is ignored and task-owned;
+  configure output to the task directory when supported. Preserve ownership of legacy artifacts.
+- Requested implementation files and permanent documentation/tests belong in their proper source locations. Do not
+  reclassify deliverables as scratch to conceal an unfinished change. Promote a temporary artifact only when the user
+  requests it or an applicable skill explicitly mandates a permanent deliverable, and review that exact file.
+- Before finishing, compare `git status --short` with the starting snapshot. Remove or relocate only this task's
+  accidental scratch after verifying ownership and destination. Preserve unrelated staged, modified, and untracked
+  work. Never ask to commit temporary files as housekeeping; retained research or recovery evidence stays ignored.
+- Clean only the recorded task directory after preserving requested deliverables. With the allocator, use its
+  `inspect <taskId>` then `cleanup <taskId>` commands. Otherwise verify the absolute target stays under this checkout's
+  task root and contains no links before deleting it. Never clear shared scratch parents or other sessions by age.
+  Use `screenshot-session-dir.mjs` only after verifying that this checkout's helper returns a directory owned by
+  this task and supports `--cleanup`; retain that returned path and clean only it with `--cleanup`. Otherwise route
+  captures into the task's `outputs/` and preserve shared legacy capture directories. Ignored storage does not
+  authorize retaining credentials or sensitive data.

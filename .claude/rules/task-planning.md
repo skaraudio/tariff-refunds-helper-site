@@ -14,7 +14,8 @@
 
 ## Task List Files
 
-For complex tasks, create execution docs in `.claude/temp/.md/execution/`:
+For complex tasks, create the execution doc in the task directory's `notes/` child, following root
+`AGENTS.md` §Temporary work (Codex and Claude Code):
 
 ```markdown
 # {Task Name}
@@ -33,7 +34,7 @@ For complex tasks, create execution docs in `.claude/temp/.md/execution/`:
 
 - Create BEFORE starting complex work
 - Update `[ ]` -> `[x]` as tasks complete
-- Move to `completed/` subfolder when done
+- Mark the doc complete; retention and task-owned cleanup follow root `AGENTS.md` §Temporary work.
 
 ---
 

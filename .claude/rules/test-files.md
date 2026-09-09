@@ -14,7 +14,8 @@ paths:
 non-negotiable.
 
 **Note on harness:** this repo has **no `test/` directory and no `test/bootstrap.js` / `runTest()` yet.**
-Put Claude-authored verification and DB-poking scripts under `.claude/temp/workspace/` (gitignored), run
+Put agent-authored verification and DB-poking scripts in the allocated task directory's `self-tests/` child
+per root `AGENTS.md` §Temporary work (Codex and Claude Code). Run
 them with `node`, and load env from `.env` yourself if needed. If a real `runTest()` harness is later added
 under `test/`, follow it. Until then the five rules below apply to any script you write here.
 
