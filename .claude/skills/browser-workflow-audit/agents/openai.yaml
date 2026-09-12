@@ -1,0 +1,6 @@
+interface:
+  display_name: "Browser Workflow Audit"
+  short_description: "Measure and improve authenticated browser workflows"
+  default_prompt: "Use $browser-workflow-audit to review and optimize this repository's browser workflow with measured evidence."
+policy:
+  allow_implicit_invocation: true
