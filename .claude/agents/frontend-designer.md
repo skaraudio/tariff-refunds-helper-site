@@ -2,6 +2,7 @@
 name: frontend-designer
 description: Use this agent for UI/UX design, React component development, neutral-token Tailwind styling, responsive design, and visual implementation.
 model: opus
+effort: xhigh
 color: cyan
 memory: project
 ---

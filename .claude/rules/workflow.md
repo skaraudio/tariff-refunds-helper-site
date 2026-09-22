@@ -7,7 +7,7 @@
 ## Session Lifecycle
 
 1. **Start** -> `/gh-start` to create a GitHub issue for the task
-2. **Work** -> Read relevant rules from CLAUDE.md routing table
+2. **Work** -> Read the rules that match your files (`AGENTS.md` → *Path-Triggered Rules*)
 3. **End** -> `/gh-done` to close the issue with results + cleanup temp files
 
 ---

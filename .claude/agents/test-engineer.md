@@ -1,7 +1,8 @@
 ---
 name: test-engineer
-description: Use this agent for test creation, test debugging, test strategy planning, and ensuring adequate test coverage for features.
+description: Use this agent for test creation, test debugging, test strategy planning, and ensuring adequate test coverage for features. The app has no test suite, so here that means throwaway verification scripts — parser checks against sample PDFs, upload round-trips, DB checks.
 model: opus
+effort: xhigh
 color: magenta
 memory: project
 ---
@@ -32,8 +33,10 @@ You are a test engineering specialist focused on creating comprehensive, maintai
 
 ## Project Test Conventions
 
-**There is no `test/` dir or `runTest()` harness in this repo yet.** Write verification scripts as plain
-`node` files under `.claude/temp/workspace/` (gitignored) and follow `.claude/rules/test-files.md`: arrow
+**The app has no test suite or shared `runTest()` harness** (the only `test/` tree is the vendored
+prompt-improver tool under `test/0-ai/`). Write verification scripts as plain `node` files in your task
+directory's `self-tests/` child (root `AGENTS.md` §Temporary work), run them from the repo root, and follow
+`.claude/rules/test-files.md`: arrow
 functions only, a thin top-level wrapper that holds config + one call into helpers below it, minimal
 comments, `chalk` colors when available, `[N/total]` progress on loops > 3 items. Load `.env` yourself if
 the script needs DB env vars.
@@ -48,13 +51,14 @@ import fs from 'fs';
 import path from 'path';
 
 const PDF_DIR = '.claude/temp/example-entry-summaries';
+const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3014';
 
 const verifyUpload = async () => {
   const file = fs.readdirSync(PDF_DIR).find((f) => f.endsWith('.pdf'));
   const form = new FormData();
   form.append('file', new Blob([fs.readFileSync(path.join(PDF_DIR, file))]), file);
 
-  const res = await fetch('http://localhost:3014/api/upload', { method: 'POST', body: form });
+  const res = await fetch(`${BASE_URL}/api/upload`, { method: 'POST', body: form });
   const data = await res.json();
   if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}: ${JSON.stringify(data)}`);
   console.log('PASS: upload returned', data.result?.totalRefundAmount);
@@ -65,10 +69,14 @@ verifyUpload();
 
 ### Verifying Parser Logic (no server, no DB)
 
-Prefer unit-style checks straight against `lib/pdf/parse-entry-summary.mjs` — it is pure given a buffer:
+Prefer unit-style checks straight against `lib/pdf/parse-entry-summary.mjs` — it is pure given a buffer.
+The import resolves from the repo root, so it works at any script depth:
 
 ```javascript
-import { parseEntrySummary } from '../../../lib/pdf/parse-entry-summary.mjs';
+import path from 'path';
+import { pathToFileURL } from 'url';
+
+const { parseEntrySummary } = await import(pathToFileURL(path.resolve('lib/pdf/parse-entry-summary.mjs')).href);
 
 const verifyParse = async (buffer) => {
   const out = await parseEntrySummary(buffer);

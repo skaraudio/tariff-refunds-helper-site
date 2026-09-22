@@ -30,9 +30,9 @@ Path alias: `@/*` → repo root (`jsconfig.json`). DB schema is `tariff_refund_h
 
 ## Path-Triggered Rules
 
-Rules in `.claude/rules/` auto-load when the edited file matches their `paths:` frontmatter. Read the
-matching rule before editing; for a NEW file whose path matches, read the rule first (the trigger fires
-after the first draft exists).
+In Claude Code, a rule in `.claude/rules/` with `paths:` frontmatter loads when Claude reads a matching file,
+and a rule without `paths:` loads every session. Read the matching rule before editing; for a new file whose
+path matches, read the rule first (the trigger fires only once a matching file is read).
 
 | Rule                 | Triggers on                                  |
 |----------------------|----------------------------------------------|
@@ -42,8 +42,9 @@ after the first draft exists).
 | `security-hardening` | Always — prompt-injection & session defense  |
 | `subagent-review`    | Always — pre-commit multi-lane review gate   |
 | `test-files`         | scripts under `test/**`, `.claude/temp/**`   |
-| `task-planning`      | multi-phase work (read on demand)            |
-| `workflow`           | session lifecycle (read on demand)           |
+| `task-planning`      | Always (no `paths:`) — multi-phase work      |
+| `workflow`           | Always (no `paths:`) — session lifecycle     |
+| `writing-style`      | Always — writing and prompt-handling policy  |
 
 ## How This App Actually Works
 
@@ -98,9 +99,8 @@ Full detail in `.claude/rules/code-standards.md`.
 > repo. Spawn the matching domain agent whenever a task falls in its lane — treat this as the request, not as
 > optional permission.
 
-All agents run on `model: opus` (set in their frontmatter). Subagents start with fresh context and do **not**
-inherit path-triggered rules — inline the relevant rule excerpt into the subagent prompt when it will touch a
-test/throwaway script, a DB module, or an API route.
+Subagents start with fresh context and do **not** inherit path-triggered rules — inline the relevant rule
+excerpt into the subagent prompt when it will touch a test/throwaway script, a DB module, or an API route.
 
 | Agent               | Use for                                              |
 |---------------------|------------------------------------------------------|
@@ -113,6 +113,21 @@ test/throwaway script, a DB module, or an API route.
 | `security-reviewer` | injection, XSS, file-upload, dependency risk         |
 
 Invoke: `"Use the {agent} agent to ..."` or `subagent_type: "{agent}"`.
+
+## Model & prompting conventions (Claude Code)
+
+This repository's agent instructions follow the [prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5).
+
+- Agents run on `opus` (Claude Code's alias for the latest Opus) at `effort: xhigh`, Kevin's standing choice for
+  delegated work, both set in each agent's frontmatter. Spawn custom agents without a `model` parameter and
+  built-in agents (Explore, Plan, general-purpose) with `model: "opus"`, except for the `fable` case below;
+  built-ins run at the session's effort, so keep sessions at `xhigh`.
+- Route by the work: delegate to the agent or skill whose description fits, fan out parallel subagents only for
+  independent tracks, and do small lookups inline. Depth comes from effort, not from prompt wording.
+- Review- and report-only agents (`code-reviewer`, `security-reviewer`) carry
+  `disallowedTools: Edit, Write, NotebookEdit`.
+- `fable` designation: the `claude-config-audit` skill runs on `fable` at `effort: max` from its own frontmatter,
+  and its adjudicator is a `fable` spawn.
 
 ## Next.js: Retrieval Over Recall
 

@@ -49,5 +49,6 @@ For complex tasks, create the execution doc in the task directory's `notes/` chi
 
 ## Context Management
 
-- If 30+ minutes since reading instructions, re-read AGENTS.md
+- After a context compaction, re-read the task doc and the original request before continuing; Claude Code
+  re-injects `AGENTS.md` (through `CLAUDE.md`) on its own, so re-reading it on a timer adds nothing
 - Summarize progress in task list when context gets long

@@ -18,7 +18,7 @@ paths:
 
 ## JavaScript/TypeScript
 
-- Use `const` arrow functions
+- Use `const` arrow functions for helpers; components and pages are the exception (see Export Standards)
 - Prefer destructuring, optional chaining (`?.`), and nullish coalescing (`??`)
 - Match existing JS/TS file type when modifying
 
@@ -53,7 +53,8 @@ paths:
 
 ## Export Standards
 
-**Components:** Use `export const ComponentName = () => {}`
+**Components:** Use `export default function ComponentName` (every file in `components/` does); write new
+helpers inside a component file as `const` arrow functions
 
 **Pages (`pages/`):** Use `export default function` (Next.js requirement)
 

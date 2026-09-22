@@ -81,10 +81,12 @@ WHERE TABLE_SCHEMA = 'tariff_refund_helper_site'
 
 ## Migration Scripts
 
-**Claude-generated migration scripts go in:** `.claude/temp/workspace/migrations/`
+**Agent-generated migration drafts go in:** the task directory's `migrations/` child, per root `AGENTS.md`
+§Temporary work (Codex and Claude Code). The legacy `.claude/temp/workspace/migrations/` folder holds
+`create-database.mjs`; read it there, but draft new migrations in the task directory.
 
-**NEVER put migration scripts in `scripts/`, `.claude/scripts/`, or any other project folder.** Those folders are for
-production scripts checked into git. Claude-generated migrations are workspace files that get reviewed and applied
+**Never put migration scripts in `scripts/`, `.claude/scripts/`, or any other project folder.** Those folders are for
+production scripts checked into git. Agent-generated migrations are workspace files that get reviewed and applied
 manually.
 
 ---

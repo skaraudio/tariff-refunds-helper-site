@@ -13,7 +13,9 @@ paths:
 **Read this before writing or modifying any test or throwaway verification script.** These rules are
 non-negotiable.
 
-**Note on harness:** this repo has **no `test/` directory and no `test/bootstrap.js` / `runTest()` yet.**
+**Note on harness:** the app has **no `test/bootstrap.js` or shared `runTest()` yet.** The only tracked `test/`
+tree is the vendored prompt-improver tool under `test/0-ai/`; its `_lib/run-test.mjs` (a `runTest` that only loads
+`.env`) and dependency-free `_lib/color-logging.mjs` (used in place of `chalk`) belong to that tool.
 Put agent-authored verification and DB-poking scripts in the allocated task directory's `self-tests/` child
 per root `AGENTS.md` §Temporary work (Codex and Claude Code). Run
 them with `node`, and load env from `.env` yourself if needed. If a real `runTest()` harness is later added

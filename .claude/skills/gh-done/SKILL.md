@@ -1,6 +1,6 @@
 ---
 name: gh-done
-description: Close a GitHub issue with a completion summary (success or failure).
+description: Close a GitHub issue with a completion summary (success or failure). Use at the end of a task tracked with /gh-start (.claude/rules/workflow.md).
 argument-hint: "[issue-number] [success|fail]"
 allowed-tools: Bash(gh issue *)
 ---

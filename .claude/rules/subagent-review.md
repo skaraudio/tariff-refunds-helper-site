@@ -5,7 +5,8 @@ any commit.
 
 **Owns:** the gate — its sequencing, the four lanes and their mandates, the evidence a finding must carry,
 severity, and the pass/fail bar. **Does not own:** the standing subagent-delegation request, the fresh-context
-rule-propagation requirement, or the `model: opus` default (`AGENTS.md` → *Agent Delegation*); the UX rubric,
+rule-propagation requirement (`AGENTS.md` → *Agent Delegation*), or each lane's model and effort (`AGENTS.md` →
+*Model & prompting conventions (Claude Code)*); the UX rubric,
 score bar, and write-safety boundary (`.claude/skills/ux-score-gate/SKILL.md`); the path-triggered rule content
 each lane must inline (`.claude/rules/api-patterns.md`, `database.md`, `code-standards.md`).
 
@@ -17,7 +18,8 @@ Triggered automatically when implementation work touches ANY of:
 
 - 2+ files, OR
 - any route under `pages/api/**`, OR
-- `lib/mysql/**`, any `.sql`, or a migration under `.claude/temp/workspace/migrations/`, OR
+- `lib/mysql/**`, any `.sql`, or a migration draft under `.claude/temp/workspace/` (a task directory's
+  `migrations/` child or the legacy `migrations/` folder), OR
 - `lib/pdf/parse-entry-summary.mjs` — the single source of truth for IEEPA eligibility, OR
 - any form-facing or user-data-rendering component in `components/**`, OR
 - server-side input validation on `pages/api/upload.js` (mimetype/size/PDF-only guards).
@@ -25,7 +27,9 @@ Triggered automatically when implementation work touches ANY of:
 **Exempt** (single-agent work is fine): doc-only edits and comment changes; formatting/lint-only diffs; a
 single-file UI tweak with no logic change and no new interaction; config or dependency version bumps with no
 code change. An exempt UI tweak is exempt from the gate, not from checking the responsive classes it touches
-still hold at narrow widths — there is no browser tool here to screenshot it (see UX lane, below).
+still hold at narrow widths — render it at a narrow viewport with the attached browser tools
+(`.claude/skills/chrome-devtools/SKILL.md`), or trace the classes and say that no render was observed (see UX
+lane, below).
 
 ---
 
@@ -157,6 +161,7 @@ CONFIDENCE:     [high | medium | low + one-line reason if not high]
 `NOT REVIEWED` is mandatory — an unstated coverage gap is how a clean verdict ships a bug.
 
 ---
-*Version: 1.0 (2026-08-20) — New rule: a four-lane commit gate (Security · Efficacy · Completeness & Soundness ·
-conditional UX) replacing no prior review gate, with the evidence standard and snapshot-matched clean round.
-History: `git log -- .claude/rules/subagent-review.md`.*
+*Version: 1.1 (2026-09-22) — Model and effort now point to AGENTS.md's conventions section; the exempt-tweak
+narrow-width check uses attached browser tools; migration-draft scope covers task directories. Lanes, evidence
+standard, severity and round cap unchanged. 1.0 (2026-08-20): new four-lane commit gate (Security · Efficacy ·
+Completeness & Soundness · conditional UX). History: `git log -- .claude/rules/subagent-review.md`.*

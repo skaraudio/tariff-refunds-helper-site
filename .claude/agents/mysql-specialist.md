@@ -2,6 +2,7 @@
 name: mysql-specialist
 description: Use this agent for MySQL query optimization, schema design, migration planning, index analysis, and deadlock resolution.
 model: opus
+effort: xhigh
 color: yellow
 memory: project
 ---
@@ -91,8 +92,10 @@ WHERE TABLE_SCHEMA = 'tariff_refund_helper_site'
 
 ### Migration Scripts
 
-- Place in `.claude/temp/workspace/migrations/`
-- Never put in `scripts/` or `.claude/scripts/`
+- Draft them in your task directory's `migrations/` child (root `AGENTS.md` §Temporary work); the legacy
+  `.claude/temp/workspace/migrations/` folder holds `create-database.mjs` for reference
+- Never put them in `scripts/` or `.claude/scripts/`: those hold tracked production scripts, and migrations
+  here are reviewed and applied by hand
 - Include both UP and DOWN migrations
 - Test on a copy of production data first
 

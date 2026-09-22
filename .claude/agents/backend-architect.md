@@ -1,7 +1,8 @@
 ---
 name: backend-architect
-description: Use this agent for API design, database schema decisions, system architecture, and backend infrastructure planning.
+description: Use this agent for API design, request/response contracts, data-model decisions, system architecture and backend planning, including the upload → parser → database flow. For SQL tuning, indexes and migrations, use mysql-specialist.
 model: opus
+effort: xhigh
 color: blue
 memory: project
 ---

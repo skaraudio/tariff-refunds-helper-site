@@ -34,9 +34,9 @@ Use the Chrome DevTools MCP to drive a real browser against this app's dev serve
   A successful readiness poll does not refresh an old snapshot. Combine related read-only DOM checks
   into one compact result instead of repeated round trips or a full DOM dump.
 - Reuse the ready page for inline screenshots during iteration when supported. Save required evidence
-  under `.claude/temp/screenshots/<unique-task-id>/` with viewport names and inspect each image.
-  Recheck readiness after resizing. Close only pages you opened; delete only your task child after
-  verifying its resolved absolute path is within this repo. Shared cleanup remains a separate action.
+  in the task directory's `outputs/` child (root `AGENTS.md` §Temporary work (Codex and Claude Code))
+  with viewport names and inspect each image. Recheck readiness after resizing. Close only pages you
+  opened; clean only your task directory, as that section describes. Shared cleanup remains a separate action.
 - Measure complete tool-call times separately from renderer/navigation times. Keep the route, viewport,
   data state and capture type fixed; separate cold loads, take at least three warm samples, and report
   medians, outliers and failed checks. Compare one workflow change at a time. Do not present another

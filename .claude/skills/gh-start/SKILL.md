@@ -1,6 +1,6 @@
 ---
 name: gh-start
-description: Create a GitHub issue to track the current investigation or task.
+description: Create a GitHub issue to track the current investigation or task. Use at the start of a bug fix, feature, refactor or multi-step task (.claude/rules/workflow.md); skip it for questions, code exploration and one-line fixes.
 argument-hint: "[optional title]"
 allowed-tools: Bash(gh issue *)
 ---
@@ -50,5 +50,6 @@ Use /gh-done when finished to close with results.
 
 - `bug` - For bug fixes
 - `enhancement` - For new features
-- `investigation` - For research/debugging
-- `database` - For MySQL/schema work
+
+Add one with `--label`. The repo has only GitHub's default labels; there is no `investigation` or `database`
+label, and `gh issue create` fails on a label that doesn't exist.

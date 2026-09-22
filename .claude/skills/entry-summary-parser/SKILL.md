@@ -50,8 +50,8 @@ Header-field extractors (`extractEntryNumber`, `extractEntryDate`, `extractCount
    console.log(text);
    ```
 2. Adjust the narrowest regex/branch that fixes the case.
-3. Re-run `parseEntrySummary` across **all** PDFs in `.claude/temp/example-entry-summaries/` (there are
-   60+) and confirm no regression in `totalRefundAmount` / `htsCodesFound`. Use a throwaway script under
+3. Re-run `parseEntrySummary` across **all** PDFs in `.claude/temp/example-entry-summaries/` (57 as of
+   2026-09-22) and confirm no regression in `totalRefundAmount` / `htsCodesFound`. Use a throwaway script under
    `.claude/temp/workspace/` per `.claude/rules/test-files.md` (arrow fns, thin wrapper, `[N/total]`).
 
 ## Persistence (upload.js)
