@@ -36,7 +36,7 @@ path matches, read the rule first (the trigger fires only once a matching file i
 
 | Rule                 | Triggers on                                  |
 |----------------------|----------------------------------------------|
-| `code-standards`     | `components/**`, `pages/**`, `lib/**`, `styles/**` |
+| `code-standards`     | `components/**/*.{jsx,tsx}`, `pages/**/*.{jsx,tsx}`, `lib/**/*.{js,mjs,ts}`, `styles/**/*.css` |
 | `database`           | `lib/mysql/**`, `**/*.sql`                    |
 | `api-patterns`       | `pages/api/**`                               |
 | `security-hardening` | Always — prompt-injection & session defense  |
@@ -118,10 +118,11 @@ Invoke: `"Use the {agent} agent to ..."` or `subagent_type: "{agent}"`.
 
 This repository's agent instructions follow the [prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5).
 
-- Agents run on `opus` (Claude Code's alias for the latest Opus) at `effort: xhigh`, Kevin's standing choice for
-  delegated work, both set in each agent's frontmatter. Spawn custom agents without a `model` parameter and
-  built-in agents (Explore, Plan, general-purpose) with `model: "opus"`, except for the `fable` case below;
-  built-ins run at the session's effort, so keep sessions at `xhigh`.
+- Agents run on `opus` (Claude Code's alias for the latest Opus), set in each agent's frontmatter. Spawn custom
+  agents without a `model` parameter and built-in agents (Explore, Plan, general-purpose) with `model: "opus"`,
+  except for the `fable` case below.
+- Effort: `.claude/settings.json` sets `effortLevel` `high` for sessions, built-in agents and skills without their
+  own `effort`; custom agents in `.claude/agents/` pin `effort: xhigh` (`max` where set).
 - Route by the work: delegate to the agent or skill whose description fits, fan out parallel subagents only for
   independent tracks, and do small lookups inline. Depth comes from effort, not from prompt wording.
 - Review- and report-only agents (`code-reviewer`, `security-reviewer`) carry
