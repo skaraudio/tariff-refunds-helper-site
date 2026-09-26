@@ -41,6 +41,11 @@ yarn-error.log*
 !.claude/temp/**/
 !.claude/temp/**/.gitkeep
 
+# Shared agent memory: stores beside a .claude/agents/ folder are committed; others are strays.
+**/.claude/agent-memory/
+!/.claude/agent-memory/
+**/.claude/agent-memory-local/
+
 # Editor backup files
 *~
 
