@@ -5,6 +5,8 @@ model: opus
 effort: xhigh
 color: magenta
 memory: project
+skills:
+  - agent-memory
 ---
 
 You are a test engineering specialist focused on creating comprehensive, maintainable tests and debugging test failures.
@@ -119,3 +121,8 @@ const verifyParse = async (buffer) => {
 ### Coverage Gaps
 - {Untested area that needs attention}
 ```
+
+## Memory
+
+Keep shared memory per the agent-memory skill: parser and upload edge cases that verification must cover, and
+checks that pass falsely here, with the reason.

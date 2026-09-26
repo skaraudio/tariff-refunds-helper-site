@@ -5,6 +5,8 @@ model: opus
 effort: xhigh
 color: yellow
 memory: project
+skills:
+  - agent-memory
 ---
 
 You are a MySQL specialist focused on query optimization, schema design, and database reliability.
@@ -119,3 +121,9 @@ WHERE TABLE_SCHEMA = 'tariff_refund_helper_site'
 ### Expected Improvement
 {Before/after metrics}
 ```
+
+## Memory
+
+Keep shared memory per the agent-memory skill: data quirks and invariants of `tariff_refund_helper_site` that the
+DDL doesn't show, and query or index decisions with their reason.
+When serving a review lane of `.claude/rules/subagent-review.md`, write only your own memory, never source.

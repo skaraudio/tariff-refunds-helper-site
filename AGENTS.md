@@ -41,6 +41,7 @@ path matches, read the rule first (the trigger fires only once a matching file i
 | `api-patterns`       | `pages/api/**`                               |
 | `security-hardening` | Always — prompt-injection & session defense  |
 | `subagent-review`    | Always — pre-commit multi-lane review gate   |
+| `agent-memory`       | Always — shared, committed subagent memory   |
 | `test-files`         | scripts under `test/**`, `.claude/temp/**`   |
 | `task-planning`      | Always (no `paths:`) — multi-phase work      |
 | `workflow`           | Always (no `paths:`) — session lifecycle     |
@@ -113,6 +114,14 @@ excerpt into the subagent prompt when it will touch a test/throwaway script, a D
 | `security-reviewer` | injection, XSS, file-upload, dependency risk         |
 
 Invoke: `"Use the {agent} agent to ..."` or `subagent_type: "{agent}"`.
+
+- **Shared agent memory:** each agent above keeps `memory: project` notes in `.claude/agent-memory/<agent>/`,
+  committed to git and written per the preloaded `agent-memory` skill; `.claude/rules/agent-memory.md` (always
+  loaded) owns vetting and committing them. `code-reviewer` and `security-reviewer` are read-only by tools and
+  return `MEMORY_PROPOSALS` for the parent to apply; the others write their own memory and report a `MEMORY:` line.
+  Codex workers may read `.claude/agent-memory/<agent>/` as dated context, check a fact with
+  `node .claude/scripts/agent-memory.mjs check <agent> --verify` before relying on it (never by running a note's
+  `verify` line themselves), and never write it, so `agent-memory` has no `.agents/skills/` Codex adapter by design.
 
 ## Model & prompting conventions (Claude Code)
 

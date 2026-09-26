@@ -39,7 +39,8 @@ The UX lane **writes** code; the other three **read** it. Running them together 
 moving target.
 
 1. **Converge the UX lane first**, when it triggers (`.claude/skills/ux-score-gate/SKILL.md`).
-2. **Freeze the tree.** Stop editing. Record `git status --porcelain` + `git log --oneline -1`.
+2. **Freeze the tree.** Stop editing. Record `git status --porcelain -- . ':(exclude)*.claude/agent-memory/*'` +
+   `git log --oneline -1 -- . ':(exclude)*.claude/agent-memory/*'`; agent-memory changes never un-freeze it.
 3. **Run Security, Efficacy and Completeness in parallel** against that frozen tree.
 4. Any fix un-freezes it → re-snapshot and re-review.
 
@@ -51,6 +52,12 @@ moving target.
 path-triggered rule the subagent will not inherit — subagents start fresh and do not inherit path-triggered
 rules (`AGENTS.md` → *Agent Delegation*). **Do NOT include your own account of what you built or why it is
 correct** — that anchors the reviewer to your model of the code instead of the code.
+
+**Lane memory** follows the `agent-memory` skill (`.claude/rules/agent-memory.md`). `security-reviewer` and
+`code-reviewer` are read-only by tools: they end with `MEMORY_PROPOSALS`, which the parent vets and applies in the
+same turn. `backend-architect`, `mysql-specialist` and `frontend-designer` are writers: in a read lane they write
+only their own memory, never source, and report a `MEMORY:` line. The gate record lists
+`MEMORY_PROPOSALS: applied <n> / rejected <n> (<reason>)` and the writer lanes' `MEMORY:` lines.
 
 ### Security · `security-reviewer`
 
@@ -154,14 +161,18 @@ BLOCKERS:       [each: file:line · failure trace · CONFIRMED|PLAUSIBLE]   — 
 NON-BLOCKERS:   [each: file:line · concrete cost]                        — or "none"
 AREAS REVIEWED: [each file + the act performed on it]                    — UX lane returns its scorecard instead
 NOT REVIEWED:   [anything in scope you could not reach, and why]         — or "none"
-SNAPSHOT:       [git sha at END of pass; anything still dirty]
+SNAPSHOT:       [git sha at END of pass; anything still dirty outside .claude/agent-memory/]
 CONFIDENCE:     [high | medium | low + one-line reason if not high]
+MEMORY_PROPOSALS: [read-only lanes: the agent-memory skill's block]         — or "none"
+MEMORY:         [added|updated|deleted <files>]                          — or "none"; always the last line
 ```
 
 `NOT REVIEWED` is mandatory — an unstated coverage gap is how a clean verdict ships a bug.
 
 ---
-*Version: 1.1 (2026-09-22) — Model and effort now point to AGENTS.md's conventions section; the exempt-tweak
+*Version: 1.2 (2026-09-26) — shared agent memory v2: lane memory follows the agent-memory skill (read-only lanes
+return `MEMORY_PROPOSALS`, writer lanes report `MEMORY:`), and snapshots exclude `.claude/agent-memory/**`.
+1.1 (2026-09-22): Model and effort now point to AGENTS.md's conventions section; the exempt-tweak
 narrow-width check uses attached browser tools; migration-draft scope covers task directories. Lanes, evidence
 standard, severity and round cap unchanged. 1.0 (2026-08-20): new four-lane commit gate (Security · Efficacy ·
 Completeness & Soundness · conditional UX). History: `git log -- .claude/rules/subagent-review.md`.*
