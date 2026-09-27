@@ -21,6 +21,9 @@ per root `AGENTS.md` §Temporary work (Codex and Claude Code). Run
 them with `node`, and load env from `.env` yourself if needed. If a real `runTest()` harness is later added
 under `test/`, follow it. Until then the five rules below apply to any script you write here.
 
+**Exempt:** `.claude/scripts/agent-memory.mjs` matches these globs but is the shared agent-memory CLI, kept
+byte-identical across repos (GlobalIssueTracking#5888). Don't restyle or edit it here.
+
 ## Five Non-Negotiable Rules
 
 1. **Arrow function syntax only** — `const fnName = async () => { ... }`. NEVER `async function fnName() { }`. Applies to primary helper AND every sub-helper.
