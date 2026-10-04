@@ -41,7 +41,8 @@ moving target.
 1. **Converge the UX lane first**, when it triggers (`.claude/skills/ux-score-gate/SKILL.md`).
 2. **Freeze the tree.** Stop editing. Record `git status --porcelain -- . ':(exclude)*.claude/agent-memory/*'` +
    `git log --oneline -1 -- . ':(exclude)*.claude/agent-memory/*'`; agent-memory changes never un-freeze it.
-3. **Run Security, Efficacy and Completeness in parallel** against that frozen tree.
+3. **Run Efficacy, Completeness, and Security (only when §Security triggers start it) in parallel** against that
+   frozen tree.
 4. Any fix un-freezes it → re-snapshot and re-review.
 
 ---
@@ -61,14 +62,49 @@ only their own memory, never source, and report a `MEMORY:` line. The gate recor
 
 ### Security · `security-reviewer`
 
-Runs on **every** in-scope diff, not only the obviously sensitive ones. This is a public, anonymous, unauthenticated
-tool whose only write path ingests an untrusted PDF — an exposure usually arrives inside a change nobody classified
-as security work.
+Runs only when the diff matches §Security triggers below. This is a public, anonymous, unauthenticated tool whose only
+write path ingests an untrusted PDF.
 
 - **Opening move:** name the three most likely ways *this specific diff* creates an exposure, then hunt each, and
   report all three with their outcomes in `AREAS REVIEWED`.
-- **Scale, don't skip.** With no untrusted input, no SQL, and no new response path in the diff, the pass is a short
-  explicit confirmation of exactly that, naming what established it.
+- **Scale the pass.** A trigger matched but no untrusted input, SQL, or new response path in the changed code: the pass
+  is a short explicit confirmation of exactly that, naming what established it.
+
+### Security triggers
+
+The Security lane runs only when the diff does one of these:
+
+1. Changes the upload path: `pages/api/upload.js` (formidable parsing, size and type limits, temp-file handling), PDF
+   ingestion in `lib/pdf/` (`pdf-parse`), or anything that parses an untrusted PDF.
+2. Adds an API route under `pages/api/`, or changes what an existing route returns to an anonymous caller
+   (`pages/api/results`, `stats.js`): a new response field, a wider query, a new way to read another user's result.
+3. Builds SQL identifiers or raw fragments from input or PDF content instead of parameterized helpers (`lib/mysql/`),
+   or runs `child_process` with input-derived arguments.
+4. Changes how secrets or credentials are stored, loaded, logged, returned or exposed to the browser
+   (`NEXT_PUBLIC_*`, `.env`, DB credentials).
+5. Stores, logs or returns importer data from the 7501 (entry numbers, importer names, amounts) in a new place or to a
+   new audience: a public route, a log, an email or a third party; or renders PDF-derived text unescaped.
+6. Fetches input-controlled URLs, or adds authentication, rate limiting, CORS or bot protection (or removes it) on the
+   anonymous endpoints.
+7. Kevin asks for a security review.
+
+Every other gated change gets no Security lane. That includes landing-page layout, animation, copy, the
+refund-estimate arithmetic on already-parsed values and tests, whose correctness belongs to Efficacy, Completeness &
+Soundness and the UX/UI Score Loop. A change in one of those areas that also matches a trigger still runs it.
+
+**Author self-check** for a gated change that matches no trigger: the implementing agent answers these inline, with no
+subagent, and fixes what it finds. It runs the Security lane only if an answer shows the diff does match a trigger.
+
+1. Does uploaded PDF content or request input reach SQL, a shell, a file path, a fetched URL or HTML without
+   parameterization or escaping?
+2. Does the change add, remove or move an access check or limit on an anonymous endpoint?
+3. Could importer data, a secret or a credential reach a new place (logs, responses, the browser)?
+4. Are PDF- or request-derived strings escaped where they render?
+5. Are new inputs bounded (file size, page count, parse time, request rate)?
+
+The gate record carries one line: `Security lane: triggered (#N, reason)` or `Security lane: not triggered; self-check
+clean` (or what the self-check fixed). A standalone `security-reviewer` audit of the upload endpoint, PDF parsing and
+result exposure runs quarterly or when Kevin asks; it replaces broad per-diff coverage and never runs per commit.
 
 ### Efficacy · `code-reviewer`
 
@@ -139,7 +175,7 @@ check that shows it cannot happen — before it gates a commit. *"Could not conf
 - **Non-blocker** — style, naming, an optional refactor. Fixed inline or left as a `TODO`; backlog-worthy ones get
   filed via `/gh-start` (`.claude/rules/workflow.md`).
 
-**Commit only after a CLEAN ROUND:** one round in which every lane reports zero blockers **and every lane's
+**Commit only after a CLEAN ROUND:** one round in which every lane that runs reports zero blockers **and every lane's
 `SNAPSHOT` names the same tree state as the one about to be committed.** A PASS citing an older snapshot is
 stale — re-run that lane.
 
@@ -170,7 +206,7 @@ MEMORY:         [added|updated|deleted <files>]                          — or 
 `NOT REVIEWED` is mandatory — an unstated coverage gap is how a clean verdict ships a bug.
 
 ---
-*Version: 1.2 (2026-09-26) — shared agent memory v2: lane memory follows the agent-memory skill (read-only lanes
+*Version: 1.3 (2026-10-04) — the Security lane runs only on §Security triggers; other gated changes get an author self-check, a gate-record line and a quarterly standalone audit (GlobalIssueTracking#5958). 1.2 (2026-09-26) — shared agent memory v2: lane memory follows the agent-memory skill (read-only lanes
 return `MEMORY_PROPOSALS`, writer lanes report `MEMORY:`), and snapshots exclude `.claude/agent-memory/**`.
 1.1 (2026-09-22): Model and effort now point to AGENTS.md's conventions section; the exempt-tweak
 narrow-width check uses attached browser tools; migration-draft scope covers task directories. Lanes, evidence

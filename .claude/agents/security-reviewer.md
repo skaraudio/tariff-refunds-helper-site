@@ -1,6 +1,6 @@
 ---
 name: security-reviewer
-description: Use this agent for security audits, OWASP vulnerability checks, SQL injection prevention, XSS review, and input validation verification. It is the Security lane of .claude/rules/subagent-review.md and runs on every in-scope diff.
+description: Use this agent for security audits, OWASP vulnerability checks, SQL injection prevention, XSS review, and input validation verification. It is the Security lane of .claude/rules/subagent-review.md and runs when the diff matches its §Security triggers.
 model: opus
 effort: xhigh
 disallowedTools: Edit, Write, NotebookEdit
