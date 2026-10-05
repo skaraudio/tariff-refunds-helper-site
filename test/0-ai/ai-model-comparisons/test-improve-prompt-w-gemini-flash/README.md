@@ -49,7 +49,7 @@ All settings are defined inside the `config` object in `test-improve-prompt-w-ge
 | Config Key | Type | Default | Description |
 |---|---|---|---|
 | `prompt` | `string` | *(Sample prompt)* | The raw prompt text to analyze and rewrite into a work order. |
-| `model` | `string` | `'gemini-3.7-flash'` | Model pin and fallback baseline. Under `latest-flash`, acts as a floor. |
+| `model` | `string` | `'gemini-3.8-flash'` | Model pin and fallback baseline. Under `latest-flash`, acts as a floor. |
 | `modelSelection` | `string` | `'latest-flash'` | `'latest-flash'` queries the API for the newest Flash model at or above `model`; `'pinned'` uses `model` verbatim. |
 | `modelRefreshDays` | `number` | `7` | Integer days to cache dynamic model discovery before querying `models.list()` again. |
 | `thinkingLevel` | `string` | `'high'` | Thinking budget tier. Accepts `'low'`, `'medium'`, or `'high'`. |
@@ -149,7 +149,7 @@ When `learnFromPriorRuns` is enabled, findings from drafts scoring under 90, unc
 ## Provider Gotchas and Constraints
 
 - **Thinking Token Accounting**: Gemini bills thinking tokens as output tokens. Thinking tokens and the final generated output share the single `maxOutputTokens` cap. If `maxOutputTokens` is exceeded, Gemini halts with `finishReason === 'MAX_TOKENS'`, which throws an error.
-- **Thinking Level Limitations**: Gemini 3.7 Flash supports only `'low'`, `'medium'`, and `'high'` thinking levels. Passing `'minimal'` results in a `400 INVALID_ARGUMENT` API rejection.
+- **Thinking Level Limitations**: Gemini 3.8 Flash supports only `'low'`, `'medium'`, and `'high'` thinking levels. Passing `'minimal'` results in a `400 INVALID_ARGUMENT` API rejection.
 - **Deprecated Sampling Parameters**: `temperature`, `top_p`, and `top_k` are omitted in accordance with Google Gemini 3.x guidelines. Sending them alongside thinking configurations causes errors.
 - **Candidate Count**: `candidate_count` is unsupported on Gemini 3.x.
 - **Model Listing vs Get**: `models.get()` resolves retired tombstone IDs, making it unreliable for presence verification. Dynamic resolution uses `models.list()` to confirm `generateContent` capability.

@@ -8,9 +8,17 @@
 //                     $1.50 / $7.50 on 2027-01-01. `charged` deliberately keeps the conservative
 //                     $0.75 / $3.75 rather than $0, so a cost figure is never won by a temporary giveaway;
 //                     `list` is the 2027 rate and is the durable basis.
+//   gemini-3.8-flash  Same rates as gemini-3.7-flash per Google docs (checked 2026-10-05: $0.75 / $3.75 through
+//                     2026-12-31, then //                     `list` is the 2027 rate and is the durable basis..50 / $7.50). The 3.7 row is kept because earlier run records priced against it.
 // Gemini thinking tokens bill at the OUTPUT rate and are already inside candidatesTokenCount +
 // thoughtsTokenCount, so they must not be added again here.
 export const RATE_CARD = {
+    'gemini-3.8-flash': {
+        charged: {in: 0.75, out: 3.75},
+        list: {in: 1.50, out: 7.50},
+        cacheReadMultiplier: 0.10,
+        cacheWriteMultiplier: 1.00
+    },
     'gemini-3.7-flash': {
         charged: {in: 0.75, out: 3.75},
         list: {in: 1.50, out: 7.50},

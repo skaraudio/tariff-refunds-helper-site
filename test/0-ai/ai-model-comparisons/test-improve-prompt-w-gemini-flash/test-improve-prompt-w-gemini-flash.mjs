@@ -28,12 +28,12 @@ runTest(async () => {
 		prompt: `so the pdf parsing in lib/pdf/parse-entry-summary.mjs is way too fragile right now, pdf-parse hands us the 7501 text with the columns concatenated together with no spaces so the regexes miss line items and we end up storing isEligible false on entries that actually do have 9903.01.xx IEEPA lines on them which is the worst possible outcome for the user. I want you to walk the whole upload flow end to end starting at pages/api/upload.js with the bodyParser disabled formidable multipart handler through parseEntrySummary and into the entry_summaries + tariff_line_items inserts and the site_stats bump, and find every single place a line item can get silently dropped or a duty_amount misread, then fix it and also store some kind of parse confidence / quality signal on the entry_summaries row so we can go back later and tell which uploads need re-running, and the status enum needs to actually mean something instead of every row getting the same value. While your in there RefundResults.jsx and the results view need to actually tell the user when we could not parse the pdf cleanly instead of just showing them a zero refund like everything is fine, keep it neutral black white gray with the @theme tokens in styles/globals.css, no blue or green tailwind palette colors. Use the mysql-specialist agent for anything touching lib/mysql and the test-engineer agent for the verification scripts, dont run npm run build, use the dev server on 3014, and prove the parser fix with throwaway scripts under .claude/temp/workspace against a few real 7501 pdfs before you change any of the db code.`,
 		// ──────────────────────────────────────────────────────────────────────────────────────────
 		// The pin. Under modelSelection 'latest-flash' it is a FLOOR and a fallback, never a ceiling.
-		model: 'gemini-3.7-flash',
+		model: 'gemini-3.8-flash',
 		// 'latest-flash' = ask the API which Gemini Flash generations exist and take the newest one at or
 		// above the pin, re-checked every modelRefreshDays. 'pinned' = use config.model verbatim, forever.
 		modelSelection: 'latest-flash',
 		modelRefreshDays: 7,
-		// 3.7 accepts low | medium | high ONLY — 'minimal' is a hard 400 INVALID_ARGUMENT on this tier.
+		// 3.8 accepts low | medium | high ONLY — 'minimal' is a hard 400 INVALID_ARGUMENT on this tier (measured on gemini-3.7-flash; Google docs list the same levels for 3.8).
 		thinkingLevel: 'high',
 		// Thinking is billed as output and drawn from this same cap, so it must cover thoughts + answer.
 		// 65,536 is the model ceiling.
