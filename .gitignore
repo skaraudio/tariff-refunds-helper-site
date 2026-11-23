@@ -60,5 +60,3 @@ nul
 *.db
 /.claude/temp/
 
-# Antigravity (agy) local scratch and plan drafts
-/.agents/temp/

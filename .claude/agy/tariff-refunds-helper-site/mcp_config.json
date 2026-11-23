@@ -1,0 +1,14 @@
+{
+	"mcpServers": {
+		"next-devtools": {
+			"command": "cmd",
+			"cwd": "${PLUGIN_ROOT}/../../..",
+			"args": [
+				"/c",
+				"npx",
+				"-y",
+				"next-devtools-mcp@latest"
+			]
+		}
+	}
+}
