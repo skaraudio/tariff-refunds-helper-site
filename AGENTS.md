@@ -121,7 +121,7 @@ Invoke: `"Use the {agent} agent to ..."` or `subagent_type: "{agent}"`.
   return `MEMORY_PROPOSALS` for the parent to apply; the others write their own memory and report a `MEMORY:` line.
   Codex workers may read `.claude/agent-memory/<agent>/` as dated context, check a fact with
   `node .claude/scripts/agent-memory.mjs check <agent> --verify` before relying on it (never by running a note's
-  `verify` line themselves), and never write it, so `agent-memory` has no `.agents/skills/` Codex adapter by design.
+  `verify` line themselves), and never write it, so `agent-memory` stays Claude-only.
 
 ## Model & prompting conventions (Claude Code)
 
