@@ -60,3 +60,6 @@ nul
 *.db
 /.claude/temp/
 
+
+# Compiled Antigravity subagent wrappers generated from .claude/agents/*.md by sync-agy-agents.mjs
+/.claude/.agents/agents/

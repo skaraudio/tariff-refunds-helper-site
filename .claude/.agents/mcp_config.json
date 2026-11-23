@@ -2,7 +2,6 @@
 	"mcpServers": {
 		"next-devtools": {
 			"command": "cmd",
-			"cwd": "${PLUGIN_ROOT}/../../..",
 			"args": [
 				"/c",
 				"npx",

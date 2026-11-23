@@ -14,9 +14,9 @@
       "build": "next build",
       "start": "next start",
       "lint": "next lint",
-      "agy1": "set \"PATH=%LOCALAPPDATA%\\agy\\bin;%PATH%\" && agy --dangerously-skip-permissions --model gemini-4-neon --effort xhigh --remote-control",
-      "agy2": "set \"PATH=%LOCALAPPDATA%\\agy\\bin;%PATH%\" && agy --dangerously-skip-permissions --model gemini-4-neon --effort xhigh --remote-control",
-      "agy3": "set \"PATH=%LOCALAPPDATA%\\agy\\bin;%PATH%\" && agy --dangerously-skip-permissions --model gemini-4-neon --effort xhigh --remote-control"
+      "agy1": "set \"PATH=%LOCALAPPDATA%\\agy\\bin;%PATH%\" && (if exist \"%USERPROFILE%\\.gemini\\config\\scripts\\sync-agy-agents.mjs\" (node \"%USERPROFILE%\\.gemini\\config\\scripts\\sync-agy-agents.mjs\" --quiet . || echo [sync-agy-agents] warning: sync failed)) & agy --dangerously-skip-permissions --model gemini-4-neon --effort xhigh --remote-control",
+      "agy2": "set \"PATH=%LOCALAPPDATA%\\agy\\bin;%PATH%\" && (if exist \"%USERPROFILE%\\.gemini\\config\\scripts\\sync-agy-agents.mjs\" (node \"%USERPROFILE%\\.gemini\\config\\scripts\\sync-agy-agents.mjs\" --quiet . || echo [sync-agy-agents] warning: sync failed)) & agy --dangerously-skip-permissions --model gemini-4-neon --effort xhigh --remote-control",
+      "agy3": "set \"PATH=%LOCALAPPDATA%\\agy\\bin;%PATH%\" && (if exist \"%USERPROFILE%\\.gemini\\config\\scripts\\sync-agy-agents.mjs\" (node \"%USERPROFILE%\\.gemini\\config\\scripts\\sync-agy-agents.mjs\" --quiet . || echo [sync-agy-agents] warning: sync failed)) & agy --dangerously-skip-permissions --model gemini-4-neon --effort xhigh --remote-control"
    },
    "dependencies": {
       "next": "^16.1.6",

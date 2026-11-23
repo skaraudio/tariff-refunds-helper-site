@@ -2,7 +2,7 @@
 
 Antigravity auto-loads `AGENTS.md` and this file together (each must stay under the 24,000 B CRLF cap). **Never** add Claude at-sign imports or Markdown at-link includes here: Antigravity expands them before the cap check and loads the target twice. `AGENTS.md` is the shared policy; this file holds Antigravity-only deltas. Launch with `npm run agy1` / `agy2` / `agy3`.
 
-> **Discovery layout:** `.gemini/config.json` (`personal_customization_dir: ".claude"`) routes Antigravity to `.claude/.agents/` (`skills.json` + `plugins.json`) with all Antigravity files consolidated inside `.claude/` (zero root `.agents/`).
+> **Discovery layout:** `.gemini/config.json` (`personal_customization_dir: ".claude"`) routes Antigravity to `.claude/.agents/` (`skills.json`, `mcp_config.json`, and compiled git-ignored `agents/*.md`) with all Antigravity files consolidated inside `.claude/` (zero root `.agents/`).
 
 ## 1. What loads and what does not
 
@@ -22,7 +22,7 @@ Antigravity auto-loads `AGENTS.md` and this file together (each must stay under 
 
 ## 2. Agents (`.claude/agents/`)
 
-`.claude/agy/tariff-refunds-helper-site/agents/*.md` wraps 6 Claude agents as `invoke_subagent` specialists: `backend-architect`, `code-reviewer` (read-only), `debugging-pro`, `frontend-designer`, `mysql-specialist`, `test-engineer`. Each wrapper points at `.claude/agents/<name>.md` as canonical. Antigravity ignores Claude agent frontmatter (`model`, `effort`, `tools`, `disallowedTools`, `skills`, `memory`), so the wrappers restate the limits. `security-reviewer` is not wrapped: security reviews run only when Kevin asks in the current prompt. `invoke_subagent` `Model` accepts only `inherit`, `flash_lite`, `flash`, `pro`. After any subagent returns, run `git status --porcelain` and `git diff` over the whole tree before trusting its report.
+Compiled git-ignored `.claude/.agents/agents/*.md` (generated from `.claude/agents/*.md` by `sync-agy-agents.mjs`) wraps 6 Claude agents as `invoke_subagent` specialists: `backend-architect`, `code-reviewer` (read-only), `debugging-pro`, `frontend-designer`, `mysql-specialist`, `test-engineer`. Each wrapper points at `.claude/agents/<name>.md` as canonical. Antigravity ignores Claude agent frontmatter (`model`, `effort`, `tools`, `disallowedTools`, `skills`, `memory`), so the compiled wrappers restate the limits. `security-reviewer` is not wrapped: security reviews run only when Kevin asks in the current prompt. `invoke_subagent` `Model` accepts only `inherit`, `flash_lite`, `flash`, `pro`. After any subagent returns, run `git status --porcelain` and `git diff` over the whole tree before trusting its report.
 
 ## 3. Tool mapping
 
@@ -38,9 +38,9 @@ Antigravity auto-loads `AGENTS.md` and this file together (each must stay under 
 
 ## 4. Hooks, policy and MCP
 
-- **Hooks:** `.claude/settings.json` defines no Claude hooks, so there is no `.claude/agy/` `hooks.json`.
+- **Hooks:** `.claude/settings.json` defines no Claude hooks, so there is no `.claude/.agents/hooks.json`.
 - **Policy, not enforced by Antigravity (`permissions.deny`):** `Bash(rm .env*)`, `Bash(rm -rf)`, `Bash(rm --force)`. Treat each as banned.
-- **MCP:** `.claude/agy/tariff-refunds-helper-site/mcp_config.json` mirrors the committed `.mcp.json`; Antigravity names the servers `tariff-refunds-helper-site_next-devtools`.
+- **MCP:** `.claude/.agents/mcp_config.json` mirrors the committed `.mcp.json`; Antigravity loads the server with unprefixed name `next-devtools`.
 - **Git and deploys:** work on the current branch and never create a branch. Commit and push as the repo instructions and Kevin's standing instructions say. Deploy commands (`clasp deploy`, `serverless deploy`, `eas build`, `vercel deploy`) wait for Kevin's explicit word.
 
 ## 5. Scratch and plans
@@ -48,4 +48,4 @@ Antigravity auto-loads `AGENTS.md` and this file together (each must stay under 
 - **Repo scratch:** follow the scratch rules in `AGENTS.md`; otherwise use `.claude/temp/`, which is git-ignored. Never leave scratch in the repo root.
 - **Plans for Kevin's approval:** allocate the path with `node C:/Users/Admin/.gemini/config/scripts/agy-plan-path.mjs new <topic-slug>` and follow `~/.gemini/config/rules/repo-local-plans.md`. Reserve `~/.gemini/antigravity-cli/brain/` for user-facing Antigravity artifacts.
 
-_Version: 1.0 (2026-11-22) — Antigravity adapter built from this repo's `.claude/` inventory (Skar-Audio/GlobalIssueTracking#6901)._
+_Version: 1.1 (2026-11-23) — compiled `.claude/.agents/agents/*.md` via `sync-agy-agents.mjs`, direct `.claude/.agents/mcp_config.json` (unprefixed MCP) (Skar-Audio/GlobalIssueTracking#6907). 1.0 (2026-11-22) — Antigravity adapter built from this repo's `.claude/` inventory (Skar-Audio/GlobalIssueTracking#6901)._
